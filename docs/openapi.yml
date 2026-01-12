@@ -135,7 +135,6 @@ paths:
       operationId: signUp
       tags:
         - Authentication
-      security: []
       requestBody:
         required: true
         content:
@@ -205,7 +204,6 @@ paths:
       operationId: login
       tags:
         - Authentication
-      security: []
       requestBody:
         required: true
         content:
@@ -287,7 +285,6 @@ paths:
       operationId: refreshToken
       tags:
         - Authentication
-      security: []
       requestBody:
         required: true
         content:
@@ -344,7 +341,6 @@ paths:
       operationId: forgotPassword
       tags:
         - Authentication
-      security: []
       requestBody:
         required: true
         content:
@@ -384,7 +380,6 @@ paths:
       operationId: resetPassword
       tags:
         - Authentication
-      security: []
       requestBody:
         required: true
         content:
