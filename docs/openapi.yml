@@ -282,6 +282,8 @@ paths:
       description: |
         Obtains a new access token using a valid refresh token.
         Returns new access token and refresh token.
+
+        **Note:** This endpoint uses the refresh token from the request body, not the Authorization header.
       operationId: refreshToken
       tags:
         - Authentication
@@ -370,6 +372,8 @@ paths:
       summary: Reset password
       description: |
         Resets the user's password using the access token from the password reset email.
+
+        **Note:** The `access_token` in the request body comes from the password reset email link.
 
         **Password Requirements**:
         - Minimum 8 characters
