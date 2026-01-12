@@ -391,3 +391,25 @@ entrypoint = "./functions/api/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/api/*.html" ]
+
+# Authentication endpoints (public - no JWT verification required)
+[functions.login]
+enabled = true
+verify_jwt = false
+
+[functions.signUp]
+enabled = true
+verify_jwt = false
+
+[functions.refreshToken]
+enabled = true
+verify_jwt = false
+
+[functions.forgotPassword]
+enabled = true
+verify_jwt = false
+
+[functions.resetPassword]
+enabled = true
+verify_jwt = false
+

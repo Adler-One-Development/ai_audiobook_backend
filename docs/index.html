@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Audiobook API Documentation</title>
+        <link
+            rel="stylesheet"
+            type="text/css"
+            href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css"
+        >
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .topbar {
+                display: none;
+            }
+            .swagger-ui .info {
+                margin: 50px 0;
+            }
+            .swagger-ui .scheme-container {
+                background: #f7f7f7;
+                padding: 30px 0;
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
+
+        <script
+            src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-bundle.js"
+        ></script>
+        <script
+            src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js"
+        ></script>
+        <script>
+            window.onload = function () {
+                const ui = SwaggerUIBundle({
+                    url: "./openapi.yml",
+                    dom_id: "#swagger-ui",
+                    deepLinking: true,
+                    presets: [
+                        SwaggerUIBundle.presets.apis,
+                        SwaggerUIStandalonePreset,
+                    ],
+                    plugins: [
+                        SwaggerUIBundle.plugins.DownloadUrl,
+                    ],
+                    layout: "StandaloneLayout",
+                    persistAuthorization: true,
+                    displayRequestDuration: true,
+                    filter: true,
+                    tryItOutEnabled: true,
+                    defaultModelsExpandDepth: 1,
+                    defaultModelExpandDepth: 1,
+                    docExpansion: "list",
+                    validatorUrl: null,
+                });
+
+                window.ui = ui;
+            };
+        </script>
+    </body>
+</html>

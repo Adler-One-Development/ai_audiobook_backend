@@ -1,0 +1,435 @@
+openapi: 3.0.0
+info:
+  title: AI Audiobook Backend - Authentication API
+  description: |
+    Authentication API endpoints for the AI Audiobook application.
+
+    ## Authentication Methods
+    - **SupabaseAuth**: Use your Supabase anon key in the `apikey` header
+    - **BearerAuth**: Use JWT access token obtained from login/signup
+
+    ## Base URL (QA Environment)
+    `https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1`
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1
+    description: QA Environment
+
+security:
+  - SupabaseAuth: []
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    SupabaseAuth:
+      type: apiKey
+      in: header
+      name: apikey
+      description: Supabase anonymous API key
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token from login/signup
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User UUID from Supabase Auth
+        fullName:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        phone:
+          type: string
+          nullable: true
+          description: User's phone number
+        publisherName:
+          type: string
+          nullable: true
+          description: Publisher name
+        userType:
+          type: string
+          enum: [ADMIN, MEMBER, OWNER]
+          description: User access level
+        role:
+          type: string
+          nullable: true
+          description: User's job title
+        industry:
+          type: string
+          nullable: true
+          description: Industry name
+        profilePicture:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            url:
+              type: string
+              format: uri
+      required:
+        - id
+        - fullName
+        - email
+        - userType
+
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+        message:
+          type: string
+      required:
+        - status
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string
+      required:
+        - status
+        - message
+
+paths:
+  /signUp:
+    post:
+      summary: Register a new user
+      description: |
+        Creates a new user account with email and password.
+
+        **Default User Type**: All new users are assigned `ADMIN` userType by default.
+
+        **Password Requirements**:
+        - Minimum 8 characters
+        - At least one uppercase letter (A-Z)
+        - At least one lowercase letter (a-z)
+        - At least one number (0-9)
+        - At least one special character (!@#$%^&*)
+      operationId: signUp
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - fullName
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+                fullName:
+                  type: string
+                  example: John Doe
+      responses:
+        "201":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/User"
+              example:
+                status: success
+                message: User created successfully
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  fullName: John Doe
+                  email: user@example.com
+                  phone: null
+                  publisherName: null
+                  userType: ADMIN
+                  role: null
+                  industry: null
+                  profilePicture: null
+        "400":
+          description: Bad request - Invalid input or weak password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Password does not meet requirements
+                errors:
+                  - Password must be at least 8 characters long
+                  - Password must contain at least one uppercase letter (A-Z)
+
+  /login:
+    post:
+      summary: Authenticate user
+      description: |
+        Authenticates a user with email and password.
+        Returns JWT access token, refresh token, and user details.
+      operationId: login
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      token:
+                        type: string
+                        description: JWT access token
+                      refreshToken:
+                        type: string
+                        description: Refresh token for obtaining new access tokens
+                      expiresIn:
+                        type: integer
+                        description: Token expiration time in seconds
+                      userType:
+                        type: string
+                        enum: [ADMIN, MEMBER, OWNER]
+                        description: User access level
+                      user:
+                        $ref: "#/components/schemas/User"
+              example:
+                status: success
+                message: Login successful
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: xYz123RefreshToken456...
+                expiresIn: 3600
+                userType: ADMIN
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  fullName: John Doe
+                  email: user@example.com
+                  phone: "+1234567890"
+                  publisherName: ABC Publishers
+                  userType: ADMIN
+                  role: Technician
+                  industry: Publishing
+                  profilePicture:
+                    id: 660e8400-e29b-41d4-a716-446655440000
+                    url: https://example.com/avatar.jpg
+        "401":
+          description: Unauthorized - Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Invalid email or password
+
+  /refreshToken:
+    post:
+      summary: Refresh access token
+      description: |
+        Obtains a new access token using a valid refresh token.
+        Returns new access token and refresh token.
+      operationId: refreshToken
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: xYz123RefreshToken456...
+      responses:
+        "200":
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      token:
+                        type: string
+                        description: New JWT access token
+                      refreshToken:
+                        type: string
+                        description: New refresh token
+                      expiresIn:
+                        type: integer
+                        description: Token expiration time in seconds
+              example:
+                status: success
+                message: Token refreshed successfully
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: aBc456NewRefreshToken789...
+                expiresIn: 3600
+        "401":
+          description: Unauthorized - Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Invalid or expired refresh token
+
+  /forgotPassword:
+    post:
+      summary: Request password reset
+      description: |
+        Sends a password reset email to the user.
+        For security, always returns success regardless of whether the email exists.
+      operationId: forgotPassword
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        "200":
+          description: Request processed (email sent if account exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: If the email exists in our system, a password reset link has been sent
+
+  /resetPassword:
+    post:
+      summary: Reset password
+      description: |
+        Resets the user's password using the access token from the password reset email.
+
+        **Password Requirements**:
+        - Minimum 8 characters
+        - At least one uppercase letter (A-Z)
+        - At least one lowercase letter (a-z)
+        - At least one number (0-9)
+        - At least one special character (!@#$%^&*)
+      operationId: resetPassword
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - access_token
+                - newPassword
+              properties:
+                access_token:
+                  type: string
+                  description: Access token from password reset email
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                newPassword:
+                  type: string
+                  format: password
+                  example: NewSecurePass123!
+      responses:
+        "200":
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Password has been reset successfully
+        "400":
+          description: Bad request - Invalid token or weak password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                weakPassword:
+                  value:
+                    status: error
+                    message: Password does not meet requirements
+                    errors:
+                      - Password must contain at least one special character (!@#$%^&* etc.)
+                expiredToken:
+                  value:
+                    status: error
+                    message: Failed to reset password. The reset link may have expired.
+
+tags:
+  - name: Authentication
+    description: User authentication and account management endpoints
