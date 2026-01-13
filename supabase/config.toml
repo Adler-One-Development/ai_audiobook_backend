@@ -413,3 +413,7 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 
+[functions.logout]
+enabled = true
+verify_jwt = false
+

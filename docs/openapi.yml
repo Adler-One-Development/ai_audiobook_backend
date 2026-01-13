@@ -276,6 +276,43 @@ paths:
                 status: error
                 message: Invalid email or password
 
+  /logout:
+    post:
+      summary: Logout user
+      description: |
+        Logs out the current user by invalidating their session.
+
+        After logout, the user's JWT token will no longer be valid.
+      operationId: logout
+      tags:
+        - Authentication
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: No request body required
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Logged out successfully
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Failed to logout
+
   /refreshToken:
     post:
       summary: Refresh access token
