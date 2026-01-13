@@ -75,16 +75,17 @@ The API supports two authentication methods:
 
 ### Settings Management Endpoints
 
-| Endpoint             | Method | Description                      | Auth Required |
-| -------------------- | ------ | -------------------------------- | ------------- |
-| `/getAllIndustries`  | GET    | Get list of all industries       | No            |
-| `/getUserProfile`    | GET    | Get authenticated user's profile | Yes (JWT)     |
-| `/updateUserProfile` | PUT    | Update user profile & upload pic | Yes (JWT)     |
-| `/changePassword`    | POST   | Change user password             | Yes (JWT)     |
-| `/getOrganization`   | GET    | Get user's organization details  | Yes (JWT)     |
-| `/createUser`        | POST   | Create user in organization      | Yes (JWT)     |
-| `/deleteUser`        | DELETE | Delete user from organization    | Yes (JWT)     |
-| `/deleteAdmin`       | DELETE | Delete own account completely    | Yes (JWT)     |
+| Endpoint                     | Method | Description                      | Auth Required |
+| ---------------------------- | ------ | -------------------------------- | ------------- |
+| `/getAllIndustries`          | GET    | Get list of all industries       | No            |
+| `/getUserProfile`            | GET    | Get authenticated user's profile | Yes (JWT)     |
+| `/updateUserProfile`         | PUT    | Update user profile & upload pic | Yes (JWT)     |
+| `/changePassword`            | POST   | Change user password             | Yes (JWT)     |
+| `/getOrganization`           | GET    | Get user's organization details  | Yes (JWT)     |
+| `/getAllOrganizationMembers` | GET    | Get all organization members     | Yes (JWT)     |
+| `/createUser`                | POST   | Create user in organization      | Yes (JWT)     |
+| `/deleteUser`                | DELETE | Delete user from organization    | Yes (JWT)     |
+| `/deleteAdmin`               | DELETE | Delete own account completely    | Yes (JWT)     |
 
 ## 🌐 Environment URLs
 

@@ -857,6 +857,121 @@ paths:
                 status: error
                 message: User is not part of any organization
 
+  /getAllOrganizationMembers:
+    get:
+      summary: Get all organization members
+      description: |
+        Retrieves complete details of all members in the authenticated user's organization, including the owner.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Returns:** Full user details including profile pictures and industry information
+      operationId: getAllOrganizationMembers
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Organization members fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        fullName:
+                          type: string
+                        email:
+                          type: string
+                        phone:
+                          type: string
+                          nullable: true
+                        publisherName:
+                          type: string
+                          nullable: true
+                        userType:
+                          type: string
+                          enum: [ADMIN, OWNER, MEMBER]
+                        role:
+                          type: string
+                          nullable: true
+                        industry:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            industryName:
+                              type: string
+                        profilePicture:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            url:
+                              type: string
+                        isOwner:
+                          type: boolean
+                        createdAt:
+                          type: string
+                          format: date-time
+                  totalMembers:
+                    type: integer
+              example:
+                status: success
+                message: Organization members fetched successfully
+                members:
+                  - id: e2cad916-38c3-488e-9e11-fb20f0380f16
+                    fullName: John Doe
+                    email: john@example.com
+                    phone: "+1234567890"
+                    publisherName: Acme Publishing
+                    userType: OWNER
+                    role: CEO
+                    industry:
+                      id: 8ed98054-6dfe-4383-bd35-9a822b8f06c3
+                      industryName: Academic Publishing
+                    profilePicture:
+                      id: abc123
+                      url: https://example.com/pic.jpg
+                    isOwner: true
+                    createdAt: "2026-01-14T00:00:00Z"
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    fullName: Jane Smith
+                    email: jane@example.com
+                    phone: null
+                    publisherName: null
+                    userType: MEMBER
+                    role: Editor
+                    industry: null
+                    profilePicture: null
+                    isOwner: false
+                    createdAt: "2026-01-14T00:00:00Z"
+                totalMembers: 2
+        "404":
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /createUser:
     post:
       summary: Create user in organization
