@@ -16,13 +16,10 @@ Deno.serve(async (req) => {
         const authClient = createAuthClient();
 
         // Get the redirect URL from request or use default
-        const { redirect_to } = await req.json().catch(() => ({
-            redirect_to: null,
+        const { return_base_url } = await req.json().catch(() => ({
+            return_base_url: null,
         }));
-        const redirectUrl = redirect_to ||
-            `${
-                req.headers.get("origin") || "http://localhost:3000"
-            }/auth/callback`;
+        const redirectUrl = return_base_url || "http://localhost:3000";
 
         // Initiate Google OAuth sign in
         const { data, error } = await authClient.auth.signInWithOAuth({
