@@ -716,6 +716,81 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /changePassword:
+    post:
+      summary: Change user password
+      description: |
+        Changes the authenticated user's password.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Validations:**
+        - Old password must be correct
+        - New password must be different from old password
+        - New password must meet strength requirements (min 8 chars, uppercase, lowercase, number, special char)
+      operationId: changePassword
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - old_password
+                - new_password
+              properties:
+                old_password:
+                  type: string
+                  format: password
+                  description: Current password
+                new_password:
+                  type: string
+                  format: password
+                  description: New password (must meet strength requirements)
+            example:
+              old_password: OldPass123!
+              new_password: NewSecurePass456!
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Password changed successfully
+        "400":
+          description: Bad request - Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                samePassword:
+                  value:
+                    status: error
+                    message: New password cannot be the same as old password
+                weakPassword:
+                  value:
+                    status: error
+                    message: New password does not meet requirements
+                    errors:
+                      - Password must contain at least one special character (!@#$%^&* etc.)
+        "401":
+          description: Unauthorized - Old password incorrect or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Old password is incorrect
 
 tags:
   - name: Authentication

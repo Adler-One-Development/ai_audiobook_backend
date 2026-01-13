@@ -11,6 +11,12 @@ export interface ProfilePicture {
     url: string;
 }
 
+// Industry interface
+export interface Industry {
+    id: string;
+    industryName: string;
+}
+
 // User profile interface
 export interface User {
     id: string;
@@ -20,7 +26,7 @@ export interface User {
     publisherName: string | null;
     userType: UserType;
     role: string | null;
-    industry: string | null;
+    industry: Industry | null;
     profilePicture: ProfilePicture | null;
 }
 

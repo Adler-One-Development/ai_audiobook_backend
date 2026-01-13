@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         publisher_name,
         user_type,
         role,
-        industry,
+        industry_id,
         profile_picture_id
       `,
             )
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
             publisherName: userData.publisher_name,
             userType: userData.user_type,
             role: userData.role,
-            industry: userData.industry,
+            industry: null,
             profilePicture: null, // No profile picture on signup
         };
 

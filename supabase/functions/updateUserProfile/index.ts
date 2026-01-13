@@ -59,6 +59,29 @@ Deno.serve(async (req) => {
         let newProfilePictureId: string | null = null;
 
         if (profilePictureFile) {
+            // Validate file size (2MB limit)
+            const maxSizeInBytes = 2 * 1024 * 1024; // 2MB
+            if (profilePictureFile.size > maxSizeInBytes) {
+                return errorResponse(
+                    "Profile picture size must be less than 2MB",
+                    400,
+                );
+            }
+
+            // Validate file type (only images allowed)
+            const allowedTypes = [
+                "image/jpeg",
+                "image/jpg",
+                "image/png",
+                "image/gif",
+                "image/webp",
+            ];
+            if (!allowedTypes.includes(profilePictureFile.type)) {
+                return errorResponse(
+                    "Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed",
+                    400,
+                );
+            }
             // Get user's current profile picture
             const { data: userData } = await adminClient
                 .from("users")

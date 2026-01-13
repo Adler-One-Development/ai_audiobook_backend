@@ -80,6 +80,7 @@ The API supports two authentication methods:
 | `/getAllIndustries`  | GET    | Get list of all industries       | No            |
 | `/getUserProfile`    | GET    | Get authenticated user's profile | Yes (JWT)     |
 | `/updateUserProfile` | PUT    | Update user profile & upload pic | Yes (JWT)     |
+| `/changePassword`    | POST   | Change user password             | Yes (JWT)     |
 
 ## 🌐 Environment URLs
 

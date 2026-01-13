@@ -50,7 +50,8 @@ Deno.serve(async (req) => {
         publisher_name,
         user_type,
         role,
-        industry,
+        industry_id,
+        industries (id, industry_name),
         profile_picture_id,
         profile_pictures(id, url)
       `,
@@ -71,7 +72,12 @@ Deno.serve(async (req) => {
             publisherName: userData.publisher_name,
             userType: userData.user_type,
             role: userData.role,
-            industry: userData.industry,
+            industry: userData.industries
+                ? {
+                    id: userData.industries.id,
+                    industryName: userData.industries.industry_name,
+                }
+                : null,
             profilePicture: userData.profile_pictures
                 ? {
                     id: userData.profile_pictures.id,
