@@ -450,6 +450,14 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 
+[functions.loginWithGoogle]
+enabled = true
+verify_jwt = false
+
+[functions.signUpWithGoogle]
+enabled = true
+verify_jwt = false
+
 [functions.getAllOrganizationMembers]
 enabled = true
 verify_jwt = false

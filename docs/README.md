@@ -64,14 +64,16 @@ The API supports two authentication methods:
 
 ### Authentication Endpoints
 
-| Endpoint          | Method | Description                      | Auth Required |
-| ----------------- | ------ | -------------------------------- | ------------- |
-| `/signUp`         | POST   | Register a new user              | No            |
-| `/login`          | POST   | Authenticate user                | No            |
-| `/logout`         | POST   | Logout user (invalidate session) | No            |
-| `/refreshToken`   | POST   | Refresh access token             | No            |
-| `/forgotPassword` | POST   | Request password reset email     | No            |
-| `/resetPassword`  | POST   | Reset user password              | No            |
+| Endpoint            | Method | Description                      | Auth Required |
+| ------------------- | ------ | -------------------------------- | ------------- |
+| `/signUp`           | POST   | Register a new user              | No            |
+| `/login`            | POST   | Authenticate user                | No            |
+| `/logout`           | POST   | Logout user (invalidate session) | No            |
+| `/loginWithGoogle`  | POST   | Initiate Google OAuth login      | No            |
+| `/signUpWithGoogle` | POST   | Initiate Google OAuth sign up    | No            |
+| `/refreshToken`     | POST   | Refresh access token             | No            |
+| `/forgotPassword`   | POST   | Request password reset email     | No            |
+| `/resetPassword`    | POST   | Reset user password              | No            |
 
 ### Settings Management Endpoints
 
