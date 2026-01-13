@@ -35,10 +35,10 @@ Deno.serve(async (req) => {
             return errorResponse("User is not part of any organization", 404);
         }
 
-        // Get organization details
+        // Get organization details to find owner
         const { data: organization, error: orgError } = await adminClient
             .from("organizations")
-            .select("owner_id, member_ids")
+            .select("owner_id")
             .eq("id", userData.organization_id)
             .single();
 
@@ -46,13 +46,7 @@ Deno.serve(async (req) => {
             return errorResponse("Organization not found", 404);
         }
 
-        // Collect all user IDs (owner + members)
-        const allUserIds = [
-            organization.owner_id,
-            ...(organization.member_ids || []),
-        ];
-
-        // Fetch all organization members' details
+        // Fetch all users in this organization
         const { data: members, error: membersError } = await adminClient
             .from("users")
             .select(`
@@ -75,7 +69,7 @@ Deno.serve(async (req) => {
         ),
         created_at
       `)
-            .in("id", allUserIds);
+            .eq("organization_id", userData.organization_id);
 
         if (membersError) {
             console.error("Failed to fetch members:", membersError);

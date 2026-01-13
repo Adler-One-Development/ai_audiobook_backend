@@ -75,14 +75,14 @@ Deno.serve(async (req) => {
             return errorResponse("Failed to create organization", 500);
         }
 
-        // Insert user record in users table with OWNER userType and organization
+        // Insert user record in users table with ADMIN userType and organization
         const { data: userData, error: userError } = await adminClient
             .from("users")
             .insert({
                 id: authData.user.id,
                 full_name: fullName,
                 email: email,
-                user_type: "OWNER", // New users are owners of their organization
+                user_type: "ADMIN", // Users who sign up are ADMIN
                 organization_id: orgData.id,
             })
             .select(
