@@ -1150,8 +1150,9 @@ paths:
         - User's profile data
         - User's profile picture (storage and database)
         - User's organization
+        - **All members in the user's organization** (their auth, profiles, and profile pictures)
 
-        **Warning:** This action is irreversible!
+        **Warning:** This action is irreversible and will delete the entire organization!
       operationId: deleteAdmin
       tags:
         - Authentication
