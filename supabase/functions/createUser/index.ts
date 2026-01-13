@@ -10,6 +10,7 @@ import { validatePassword } from "../_shared/password-validator.ts";
 
 interface CreateUserRequest {
     email: string;
+    full_name: string;
     role: "ADMIN" | "OWNER" | "MEMBER";
 }
 
@@ -25,11 +26,14 @@ Deno.serve(async (req) => {
         if (authError) return authError;
 
         // Parse request body
-        const { email, role }: CreateUserRequest = await req.json();
+        const { email, full_name, role }: CreateUserRequest = await req.json();
 
         // Validate input
-        if (!email || !role) {
-            return errorResponse("Email and role are required", 400);
+        if (!email || !full_name || !role) {
+            return errorResponse(
+                "Email, full_name, and role are required",
+                400,
+            );
         }
 
         if (!["ADMIN", "OWNER", "MEMBER"].includes(role)) {
@@ -105,6 +109,7 @@ Deno.serve(async (req) => {
             .from("users")
             .insert({
                 id: authData.user.id,
+                full_name: full_name, // Use email prefix as default name
                 email: email,
                 user_type: role,
                 organization_id: requestingUser.organization_id,
