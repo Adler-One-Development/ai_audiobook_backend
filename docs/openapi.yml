@@ -382,12 +382,17 @@ paths:
             schema:
               type: object
               properties:
+                redirect_to:
+                  type: string
+                  description: Supabase auth callback URL
+                  default: https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback
                 return_base_url:
                   type: string
-                  description: URL to redirect to after OAuth completes
-                  default: https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback
+                  description: Base URL where user will be redirected with auth tokens after OAuth completes
+                  default: http://localhost:3000
             example:
               redirect_to: "https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback"
+              return_base_url: "http://localhost:3000"
       responses:
         "200":
           description: OAuth URL generated successfully
@@ -437,12 +442,17 @@ paths:
             schema:
               type: object
               properties:
+                redirect_to:
+                  type: string
+                  description: Supabase auth callback URL
+                  default: https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback
                 return_base_url:
                   type: string
-                  description: URL to redirect to after OAuth completes
-                  default: https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback
+                  description: Base URL where user will be redirected with auth tokens after OAuth completes
+                  default: http://localhost:3000
             example:
               redirect_to: "https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback"
+              return_base_url: "http://localhost:3000"
       responses:
         "200":
           description: OAuth URL generated successfully

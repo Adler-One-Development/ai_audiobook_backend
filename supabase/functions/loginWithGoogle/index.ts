@@ -15,11 +15,14 @@ Deno.serve(async (req) => {
     try {
         const authClient = createAuthClient();
 
-        // Get the redirect URL from request or use default
-        const { return_base_url } = await req.json().catch(() => ({
+        // Get redirect parameters from request
+        const { redirect_to, return_base_url } = await req.json().catch(() => ({
+            redirect_to: null,
             return_base_url: null,
         }));
-        const redirectUrl = return_base_url || "http://localhost:3000";
+        const redirectUrl = redirect_to ||
+            "https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback";
+        const returnUrl = return_base_url || "http://localhost:3000";
 
         // Initiate Google OAuth sign in
         const { data, error } = await authClient.auth.signInWithOAuth({
