@@ -792,6 +792,71 @@ paths:
                 status: error
                 message: Old password is incorrect
 
+  /getOrganization:
+    get:
+      summary: Get user's organization
+      description: |
+        Retrieves the authenticated user's organization details.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: getOrganization
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Organization fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      ownerId:
+                        type: string
+                        format: uuid
+                      memberIds:
+                        type: array
+                        items:
+                          type: string
+                          format: uuid
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+              example:
+                status: success
+                message: Organization fetched successfully
+                organization:
+                  id: 660e8400-e29b-41d4-a716-446655440001
+                  ownerId: e2cad916-38c3-488e-9e11-fb20f0380f16
+                  memberIds: ["550e8400-e29b-41d4-a716-446655440000"]
+                  createdAt: "2026-01-14T00:00:00Z"
+                  updatedAt: "2026-01-14T00:00:00Z"
+        "404":
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: User is not part of any organization
+
   /createUser:
     post:
       summary: Create user in organization
