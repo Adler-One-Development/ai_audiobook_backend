@@ -5,7 +5,10 @@ import {
     successResponse,
 } from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
-import { createClientFromRequest } from "../_shared/supabase-client.ts";
+import {
+    createAdminClient,
+    createAuthClient,
+} from "../_shared/supabase-client.ts";
 import {
     validatePassword,
     validatePasswordChange,
@@ -24,7 +27,9 @@ Deno.serve(async (req) => {
 
     try {
         // Authenticate user
-        const { user, error: authError } = await getAuthenticatedUser(req);
+        const { user: _user, error: authError } = await getAuthenticatedUser(
+            req,
+        );
         if (authError) return authError;
 
         // Parse request body
@@ -46,8 +51,7 @@ Deno.serve(async (req) => {
         );
         if (!passwordChangeValidation.isValid) {
             return errorResponse(
-                passwordChangeValidation.error ||
-                    "New password cannot be the same as old password",
+                "New password cannot be the same as old password",
                 400,
             );
         }
@@ -62,23 +66,27 @@ Deno.serve(async (req) => {
             );
         }
 
-        // Verify old password by attempting to sign in with it
-        const supabase = createClientFromRequest(req);
-
-        // First, get user's email
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (!currentUser?.email) {
-            return errorResponse("User email not found", 404);
+        // Get user from the JWT token
+        const authHeader = req.headers.get("Authorization");
+        if (!authHeader) {
+            return errorResponse("Authorization header required", 401);
         }
 
-        // Create a temporary client to verify old password
-        const { createAuthClient } = await import(
-            "../_shared/supabase-client.ts"
-        );
+        const token = authHeader.replace("Bearer ", "");
         const authClient = createAuthClient();
+
+        // Get user details from token
+        const { data: { user }, error: getUserError } = await authClient.auth
+            .getUser(token);
+
+        if (getUserError || !user?.email) {
+            return errorResponse("Failed to get user details", 401);
+        }
+
+        // Verify old password by attempting to sign in
         const { error: signInError } = await authClient.auth.signInWithPassword(
             {
-                email: currentUser.email,
+                email: user.email,
                 password: old_password,
             },
         );
@@ -87,20 +95,41 @@ Deno.serve(async (req) => {
             return errorResponse("Old password is incorrect", 401);
         }
 
-        // Update password
-        const { error: updateError } = await supabase.auth.updateUser({
-            password: new_password,
-        });
+        // Update password using admin client
+        const adminClient = createAdminClient();
+        const { error: updateError } = await adminClient.auth.admin
+            .updateUserById(
+                user.id,
+                { password: new_password },
+            );
 
         if (updateError) {
             console.error("Password update error:", updateError);
             return errorResponse("Failed to update password", 500);
         }
 
-        // Create response
+        // Get new tokens by signing in with new password
+        const { data: authData, error: newAuthError } = await authClient.auth
+            .signInWithPassword({
+                email: user.email,
+                password: new_password,
+            });
+
+        if (newAuthError || !authData.session) {
+            console.error("Failed to get new tokens:", newAuthError);
+            return errorResponse(
+                "Password updated but failed to generate new tokens",
+                500,
+            );
+        }
+
+        // Create response with new tokens
         const response = {
             status: "success" as const,
             message: "Password changed successfully",
+            token: authData.session.access_token,
+            refreshToken: authData.session.refresh_token,
+            expiresIn: authData.session.expires_in || 3600,
         };
 
         return successResponse(response, 200);
