@@ -55,15 +55,35 @@ Deno.serve(async (req) => {
             return errorResponse("Failed to create user", 500);
         }
 
-        // Insert user record in users table with default userType = ADMIN
+        // Get admin client for database operations
         const adminClient = createAdminClient();
+
+        // Create organization for the new user
+        const { data: orgData, error: orgError } = await adminClient
+            .from("organizations")
+            .insert({
+                owner_id: authData.user.id,
+                member_ids: [],
+            })
+            .select("id")
+            .single();
+
+        if (orgError || !orgData) {
+            console.error("Organization creation error:", orgError);
+            // Cleanup: delete auth user if org creation fails
+            await adminClient.auth.admin.deleteUser(authData.user.id);
+            return errorResponse("Failed to create organization", 500);
+        }
+
+        // Insert user record in users table with OWNER userType and organization
         const { data: userData, error: userError } = await adminClient
             .from("users")
             .insert({
                 id: authData.user.id,
                 full_name: fullName,
                 email: email,
-                user_type: "ADMIN", // Default user type
+                user_type: "OWNER", // New users are owners of their organization
+                organization_id: orgData.id,
             })
             .select(
                 `

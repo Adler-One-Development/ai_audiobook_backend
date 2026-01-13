@@ -792,6 +792,169 @@ paths:
                 status: error
                 message: Old password is incorrect
 
+  /createUser:
+    post:
+      summary: Create user in organization
+      description: |
+        Creates a new user and adds them to the requesting user's organization.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Authorization Rules:**
+        - Only ADMIN and OWNER can create users
+        - New user is added to the same organization as the creating user
+        - Temporary password is generated and returned
+      operationId: createUser
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email address for the new user
+                role:
+                  type: string
+                  enum: [ADMIN, OWNER, MEMBER]
+                  description: Role for the new user
+            example:
+              email: newuser@example.com
+              role: MEMBER
+      responses:
+        "201":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                      userType:
+                        type: string
+                      organizationId:
+                        type: string
+                        format: uuid
+                      temporaryPassword:
+                        type: string
+              example:
+                status: success
+                message: User created successfully
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  email: newuser@example.com
+                  userType: MEMBER
+                  organizationId: 660e8400-e29b-41d4-a716-446655440001
+                  temporaryPassword: Temp1a2b3c4d!
+        "400":
+          description: Bad request - Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Only ADMIN and OWNER can create users
+
+  /deleteUser:
+    delete:
+      summary: Delete user from organization
+      description: |
+        Deletes a user from the organization.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Deletion Rules:**
+        - Cannot delete yourself
+        - Cannot delete the organization owner
+        - MEMBER cannot delete anyone
+        - OWNER cannot delete ADMIN
+        - MEMBER cannot delete OWNER or ADMIN
+      operationId: deleteUser
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                  description: ID of the user to delete
+            example:
+              user_id: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        "200":
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: User deleted successfully
+        "403":
+          description: Forbidden - Insufficient permissions or deletion not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                cannotDeleteSelf:
+                  value:
+                    status: error
+                    message: You cannot delete yourself
+                cannotDeleteOwner:
+                  value:
+                    status: error
+                    message: The organization owner cannot be deleted
+                ownerCannotDeleteAdmin:
+                  value:
+                    status: error
+                    message: Owners cannot delete Admins
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 tags:
   - name: Authentication
     description: User authentication and account management endpoints

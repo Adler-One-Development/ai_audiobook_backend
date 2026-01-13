@@ -434,3 +434,11 @@ verify_jwt = true
 enabled = true
 verify_jwt = false
 
+[functions.createUser]
+enabled = true
+verify_jwt = false
+
+[functions.deleteUser]
+enabled = true
+verify_jwt = false
+
