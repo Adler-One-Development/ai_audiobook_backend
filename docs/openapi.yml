@@ -983,7 +983,7 @@ paths:
         **Authorization Rules:**
         - Only ADMIN and OWNER can create users
         - New user is added to the same organization as the creating user
-        - Temporary password is generated and returned
+        - Password reset email is sent to the new user to set their password
       operationId: createUser
       tags:
         - Settings Management
@@ -1018,7 +1018,7 @@ paths:
               role: MEMBER
       responses:
         "201":
-          description: User created successfully
+          description: User created successfully and password reset email sent
           content:
             application/json:
               schema:
@@ -1042,17 +1042,14 @@ paths:
                       organizationId:
                         type: string
                         format: uuid
-                      temporaryPassword:
-                        type: string
               example:
                 status: success
-                message: User created successfully
+                message: User created successfully. Password reset email sent.
                 user:
                   id: 550e8400-e29b-41d4-a716-446655440000
                   email: newuser@example.com
                   userType: MEMBER
                   organizationId: 660e8400-e29b-41d4-a716-446655440001
-                  temporaryPassword: Temp1a2b3c4d!
         "400":
           description: Bad request - Invalid input
           content:
