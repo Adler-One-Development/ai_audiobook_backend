@@ -83,16 +83,16 @@ Deno.serve(async (req) => {
             return errorResponse("Only ADMIN and OWNER can create users", 403);
         }
 
-        // Generate a temporary password
-        const tempPassword = `Temp${crypto.randomUUID().slice(0, 8)}!`;
+        // Generate a secure random password (user won't see this)
+        const securePassword = `${crypto.randomUUID()}${crypto.randomUUID()}`;
 
         // Create user in Supabase Auth
         const { data: authData, error: authCreateError } = await adminClient
             .auth.admin
             .createUser({
                 email,
-                password: tempPassword,
-                email_confirm: true,
+                password: securePassword,
+                email_confirm: true, // Auto-confirm email
             });
 
         if (authCreateError) {
@@ -142,16 +142,31 @@ Deno.serve(async (req) => {
             }
         }
 
+        // Send password reset email
+        const { error: resetError } = await adminClient.auth
+            .resetPasswordForEmail(
+                email,
+                {
+                    redirectTo: `${
+                        req.headers.get("origin") || "https://yourdomain.com"
+                    }/reset-password`,
+                },
+            );
+
+        if (resetError) {
+            console.error("Failed to send password reset email:", resetError);
+            // Don't fail the user creation, just log the error
+        }
+
         // Create response
         const response = {
             status: "success" as const,
-            message: "User created successfully",
+            message: "User created successfully. Password reset email sent.",
             user: {
                 id: userData.id,
                 email: userData.email,
                 userType: userData.user_type,
                 organizationId: userData.organization_id,
-                temporaryPassword: tempPassword,
             },
         };
 
