@@ -955,6 +955,50 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /deleteAdmin:
+    delete:
+      summary: Delete own account
+      description: |
+        Permanently deletes the authenticated user's account and all associated data.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **This action will delete:**
+        - User's auth account
+        - User's profile data
+        - User's profile picture (storage and database)
+        - User's organization
+
+        **Warning:** This action is irreversible!
+      operationId: deleteAdmin
+      tags:
+        - Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Account deleted successfully
+        "401":
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 tags:
   - name: Authentication
     description: User authentication and account management endpoints

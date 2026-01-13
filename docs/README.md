@@ -83,6 +83,7 @@ The API supports two authentication methods:
 | `/changePassword`    | POST   | Change user password             | Yes (JWT)     |
 | `/createUser`        | POST   | Create user in organization      | Yes (JWT)     |
 | `/deleteUser`        | DELETE | Delete user from organization    | Yes (JWT)     |
+| `/deleteAdmin`       | DELETE | Delete own account completely    | Yes (JWT)     |
 
 ## 🌐 Environment URLs
 

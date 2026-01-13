@@ -442,3 +442,7 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 
+[functions.deleteAdmin]
+enabled = true
+verify_jwt = false
+
