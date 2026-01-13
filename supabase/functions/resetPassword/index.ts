@@ -37,25 +37,26 @@ Deno.serve(async (req) => {
             );
         }
 
-        // Create Supabase client with the access token
+        // Create Supabase client
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
+        // Create client with the recovery access token
         const supabase = createClient(supabaseUrl, supabaseAnonKey, {
             global: {
                 headers: { Authorization: `Bearer ${access_token}` },
             },
         });
 
-        // Verify the token and update password
-        const { error } = await supabase.auth.updateUser({
+        // Update the password using the authenticated client
+        const { error: updateError } = await supabase.auth.updateUser({
             password: newPassword,
         });
 
-        if (error) {
-            console.error("Password reset error:", error);
+        if (updateError) {
+            console.error("Password update error:", updateError);
             return errorResponse(
-                "Failed to reset password. The reset link may have expired.",
+                "Failed to reset password. The token may be invalid or expired.",
                 400,
             );
         }
