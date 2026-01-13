@@ -364,12 +364,111 @@ paths:
         "401":
           description: Unauthorized - Invalid or expired refresh token
           content:
+  /loginWithGoogle:
+    post:
+      summary: Login with Google OAuth
+      description: |
+        Initiates Google OAuth login flow and returns the OAuth URL.
+
+        Frontend should redirect user to the returned URL for authentication.
+        After successful authentication, user will be redirected back with access tokens.
+      operationId: loginWithGoogle
+      tags:
+        - Authentication
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redirect_to:
+                  type: string
+                  description: URL to redirect to after OAuth completes
+                  default: https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback
+            example:
+              redirect_to: "https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback"
+      responses:
+        "200":
+          description: OAuth URL generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  url:
+                    type: string
+                    description: Google OAuth URL to redirect user to
+              example:
+                status: success
+                message: Google OAuth URL generated
+                url: "https://accounts.google.com/o/oauth2/v2/auth?..."
+        "500":
+          description: Failed to generate OAuth URL
+          content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /signUpWithGoogle:
+    post:
+      summary: Sign up with Google OAuth
+      description: |
+        Initiates Google OAuth sign up flow and returns the OAuth URL.
+
+        Frontend should redirect user to the returned URL for authentication.
+        After successful authentication:
+        - User auth account is created
+        - Organization is automatically created (user as owner)
+        - User record is created with userType ADMIN
+        - Full name is extracted from Google profile
+      operationId: signUpWithGoogle
+      tags:
+        - Authentication
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redirect_to:
+                  type: string
+                  description: URL to redirect to after OAuth completes
+                  default: https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback
+            example:
+              redirect_to: "https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback"
+      responses:
+        "200":
+          description: OAuth URL generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  url:
+                    type: string
+                    description: Google OAuth URL to redirect user to
               example:
-                status: error
-                message: Invalid or expired refresh token
+                status: success
+                message: Google OAuth URL generated
+                url: "https://accounts.google.com/o/oauth2/v2/auth?..."
+        "500":
+          description: Failed to generate OAuth URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /forgotPassword:
     post:
