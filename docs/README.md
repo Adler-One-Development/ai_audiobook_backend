@@ -73,6 +73,14 @@ The API supports two authentication methods:
 | `/forgotPassword` | POST   | Request password reset email     | No            |
 | `/resetPassword`  | POST   | Reset user password              | No            |
 
+### Settings Management Endpoints
+
+| Endpoint             | Method | Description                      | Auth Required |
+| -------------------- | ------ | -------------------------------- | ------------- |
+| `/getAllIndustries`  | GET    | Get list of all industries       | No            |
+| `/getUserProfile`    | GET    | Get authenticated user's profile | Yes (JWT)     |
+| `/updateUserProfile` | PUT    | Update user profile & upload pic | Yes (JWT)     |
+
 ## 🌐 Environment URLs
 
 ### QA Environment

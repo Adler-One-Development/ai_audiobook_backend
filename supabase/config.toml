@@ -415,5 +415,18 @@ verify_jwt = false
 
 [functions.logout]
 enabled = true
+verify_jwt = true
+
+# Settings Management endpoints
+[functions.getAllIndustries]
+enabled = true
 verify_jwt = false
+
+[functions.getUserProfile]
+enabled = true
+verify_jwt = true
+
+[functions.updateUserProfile]
+enabled = true
+verify_jwt = true
 
