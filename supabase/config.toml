@@ -462,6 +462,10 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 
+[functions.stripeWebhook]
+enabled = true
+verify_jwt = false
+
 [functions.getAllOrganizationMembers]
 enabled = true
 verify_jwt = false
