@@ -1,5 +1,5 @@
 import { SupabaseClient } from "jsr:@supabase/supabase-js@2";
-import Stripe from "npm:stripe@17.4.0";
+import Stripe from "https://esm.sh/stripe@17.4.0?target=deno";
 
 export const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
     apiVersion: "2024-12-18.acacia",

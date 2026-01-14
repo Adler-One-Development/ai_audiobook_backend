@@ -1,10 +1,9 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {
     errorResponse,
     handleCorsPreFlight,
     successResponse,
 } from "../_shared/response-helpers.ts";
-import { createClient } from "../_shared/supabase-client.ts";
+import { createClientFromRequest } from "../_shared/supabase-client.ts";
 import { stripe } from "../_shared/stripe-helpers.ts";
 import { getOrganization } from "../_shared/auth-helpers.ts";
 
@@ -12,7 +11,7 @@ Deno.serve(async (req) => {
     if (req.method === "OPTIONS") return handleCorsPreFlight();
 
     try {
-        const supabaseClient = createClient(req);
+        const supabaseClient = createClientFromRequest(req);
         const { payment_method_id } = await req.json();
 
         if (!payment_method_id) {
@@ -20,7 +19,7 @@ Deno.serve(async (req) => {
         }
 
         // Get Requesting User and Organization
-        const { user, organization, error } = await getOrganization(
+        const { user, profile, organization, error } = await getOrganization(
             req,
             supabaseClient,
         );
@@ -29,7 +28,7 @@ Deno.serve(async (req) => {
         }
 
         // Only ADMIN/OWNER can manage payment methods
-        if (user.user_type !== "ADMIN" && user.user_type !== "OWNER") {
+        if (profile?.user_type !== "ADMIN" && profile?.user_type !== "OWNER") {
             return errorResponse("Only admins can manage payment methods", 403);
         }
 

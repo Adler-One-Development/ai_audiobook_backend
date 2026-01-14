@@ -1650,6 +1650,48 @@ paths:
                   processingTimeMs:
                     type: integer
 
+  /getCreditAllocation:
+    get:
+      summary: Get credit allocation
+      description: |
+        Retrieves the authenticated user's credit balances (available, used, total).
+
+        **Requires:** JWT Bearer token.
+      operationId: getCreditAllocation
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Credit allocation retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Credit allocation fetched successfully
+                  allocation:
+                    type: object
+                    properties:
+                      user_id:
+                        type: string
+                        format: uuid
+                      credits_available:
+                        type: integer
+                      credits_used:
+                        type: integer
+                      total_credits_used:
+                        type: integer
+                  processingTimeMs:
+                    type: integer
+
   /chargePaymentMethod:
     post:
       summary: Purchase credits

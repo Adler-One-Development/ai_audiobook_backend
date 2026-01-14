@@ -498,3 +498,6 @@ verify_jwt = true
 enabled = true
 verify_jwt = false
 
+[functions.getCreditAllocation]
+enabled = true
+verify_jwt = true
