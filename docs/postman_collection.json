@@ -1,0 +1,777 @@
+{
+    "info": {
+        "_postman_id": "c7a84592-80c1-4b13-b541-698889a9f997",
+        "name": "AI Audiobook Backend API",
+        "description": "API collection for AI Audiobook Backend",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Sign Up",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"SecurePass123!\",\n    \"fullName\": \"John Doe\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/signUp",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "signUp"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set(\"token\", jsonData.token);",
+                                    "}",
+                                    "if (jsonData.refreshToken) {",
+                                    "    pm.collectionVariables.set(\"refreshToken\", jsonData.refreshToken);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"SecurePass123!\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/logout",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "logout"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Refresh Token",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set(\"token\", jsonData.token);",
+                                    "}",
+                                    "if (jsonData.refreshToken) {",
+                                    "    pm.collectionVariables.set(\"refreshToken\", jsonData.refreshToken);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/refreshToken",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "refreshToken"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Forgot Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"user@example.com\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/forgotPassword",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "forgotPassword"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"access_token\": \"<TOKEN_FROM_EMAIL>\",\n    \"newPassword\": \"NewSecurePass123!\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/resetPassword",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "resetPassword"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login With Google",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"redirect_to\": \"https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback\",\n    \"return_base_url\": \"http://localhost:3000\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/loginWithGoogle",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "loginWithGoogle"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Sign Up With Google",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"redirect_to\": \"https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback\",\n    \"return_base_url\": \"http://localhost:3000\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/signUpWithGoogle",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "signUpWithGoogle"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Settings Management",
+            "item": [
+                {
+                    "name": "Get All Industries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/getAllIndustries",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "getAllIndustries"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/getUserProfile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "getUserProfile"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update User Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"full_name\": \"John Doe Updated\",\n    \"phone\": \"+1987654321\",\n    \"publisher_name\": \"New Publisher\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/updateUserProfile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "updateUserProfile"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"oldPassword\": \"SecurePass123!\",\n    \"newPassword\": \"NewSecurePass456!\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/changePassword",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "changePassword"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Organization",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/getOrganization",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "getOrganization"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Organization Members",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/getAllOrganizationMembers",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "getAllOrganizationMembers"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create User (Admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"newmember@example.com\",\n    \"full_name\": \"New Member\",\n    \"role\": \"MEMBER\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/createUser",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "createUser"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete User (Admin)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"user_id\": \"<TARGET_USER_UUID>\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/deleteUser",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "deleteUser"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Own Account",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/deleteAdmin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "deleteAdmin"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Payment Management",
+            "item": [
+                {
+                    "name": "Add Payment Method",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"payment_method_id\": \"pm_1234567890abcdefghijklmn\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/addPaymentMethod",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "addPaymentMethod"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Payment Methods",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/getPaymentMethods",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "getPaymentMethods"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Set Default Payment Method",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"payment_method_id\": \"pm_1234567890abcdefghijklmn\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/setDefaultPaymentMethod",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "setDefaultPaymentMethod"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Payment Method",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"payment_method_id\": \"pm_1234567890abcdefghijklmn\",\n    \"exp_month\": 12,\n    \"exp_year\": 2030,\n    \"name\": \"Updated Card Name\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/updatePaymentMethod",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "updatePaymentMethod"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Payment Method",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"payment_method_id\": \"pm_1234567890abcdefghijklmn\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/deletePaymentMethod",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "deletePaymentMethod"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Billing History",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/getBillingHistory",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "getBillingHistory"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Charge Payment Method (Purchase Credits)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"numberOfCredits\": 100,\n    \"description\": \"Purchase Of Credits\",\n    \"payment_method_id\": \"pm_optional_id\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/chargePaymentMethod",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "chargePaymentMethod"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "refreshToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "anonKey",
+            "value": "<YOUR_SUPABASE_ANON_KEY>",
+            "type": "string"
+        }
+    ]
+}
