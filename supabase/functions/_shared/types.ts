@@ -28,6 +28,7 @@ export interface User {
     role: string | null;
     industry: Industry | null;
     profilePicture: ProfilePicture | null;
+    is2FAEnabled: boolean;
 }
 
 // API Response interfaces
@@ -55,6 +56,7 @@ export interface LoginResponse extends SuccessResponse {
     expiresIn: number;
     userType: UserType;
     user: User;
+    mfaRequired?: boolean;
 }
 
 // SignUp request/response

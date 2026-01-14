@@ -384,7 +384,7 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 [functions.api]
 enabled = true
 verify_jwt = true
-import_map = "./functions/api/deno.json"
+
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/api/index.ts"
@@ -465,4 +465,35 @@ verify_jwt = false
 [functions.getAllOrganizationMembers]
 enabled = true
 verify_jwt = false
+
+
+[functions.get2FAStatus]
+enabled = true
+verify_jwt = false
+
+[functions.mfaEnrollStart]
+enabled = true
+verify_jwt = false
+
+[functions.mfaEnrollComplete]
+enabled = true
+verify_jwt = false
+
+
+[functions.mfaListFactors]
+enabled = true
+verify_jwt = false
+
+[functions.mfaUnenroll]
+enabled = true
+verify_jwt = false
+
+[functions.mfaVerify]
+enabled = true
+verify_jwt = false
+
+
+
+
+
 

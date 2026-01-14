@@ -53,7 +53,8 @@ Deno.serve(async (req) => {
         industry_id,
         industries (id, industry_name),
         profile_picture_id,
-        profile_pictures(id, url)
+        profile_pictures(id, url),
+        is_2fa_enabled
       `,
             )
             .eq("id", authData.user.id)
@@ -64,6 +65,9 @@ Deno.serve(async (req) => {
         }
 
         // Format user data
+        const industry = Array.isArray(userData.industries) ? userData.industries[0] : userData.industries;
+        const profilePicture = Array.isArray(userData.profile_pictures) ? userData.profile_pictures[0] : userData.profile_pictures;
+
         const user: User = {
             id: userData.id,
             fullName: userData.full_name,
@@ -72,29 +76,33 @@ Deno.serve(async (req) => {
             publisherName: userData.publisher_name,
             userType: userData.user_type,
             role: userData.role,
-            industry: userData.industries
+            industry: industry
                 ? {
-                    id: userData.industries.id,
-                    industryName: userData.industries.industry_name,
+                    id: industry.id,
+                    industryName: industry.industry_name,
                 }
                 : null,
-            profilePicture: userData.profile_pictures
+            profilePicture: profilePicture
                 ? {
-                    id: userData.profile_pictures.id,
-                    url: userData.profile_pictures.url,
+                    id: profilePicture.id,
+                    url: profilePicture.url,
                 }
                 : null,
+            is2FAEnabled: userData.is_2fa_enabled || false,
         };
+
+        const is2FAEnabled = userData.is_2fa_enabled || false;
 
         // Create response
         const response: LoginResponse = {
             status: "success",
-            message: "Login successful",
+            message: is2FAEnabled ? "MFA verification required" : "Login successful",
             token: authData.session.access_token,
             refreshToken: authData.session.refresh_token,
             expiresIn: authData.session.expires_in || 3600,
             userType: userData.user_type,
             user,
+            mfaRequired: is2FAEnabled,
         };
 
         return successResponse(response, 200);
