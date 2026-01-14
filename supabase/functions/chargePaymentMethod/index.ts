@@ -13,7 +13,8 @@ Deno.serve(async (req) => {
 
     try {
         const supabaseClient = createClient(req);
-        const { numberOfCredits } = await req.json(); // Changed from amount/currency to numberOfCredits
+        const { numberOfCredits, payment_method_id, description } = await req
+            .json();
 
         if (!numberOfCredits || numberOfCredits <= 0) {
             return errorResponse(
@@ -60,15 +61,21 @@ Deno.serve(async (req) => {
         const amountToCharge = numberOfCredits * pricePerCredit;
         const currency = "usd";
 
-        // 2. Determine payment method (Default only for now as per simplicity, or could pass in ID)
-        const customer = await stripe.customers.retrieve(
-            organization.stripe_customer_id,
-        );
-        const paymentMethodToUse = (customer as any).invoice_settings
-            ?.default_payment_method;
-
+        // 2. Determine payment method
+        let paymentMethodToUse = payment_method_id;
         if (!paymentMethodToUse) {
-            return errorResponse("No default payment method found", 400);
+            const customer = await stripe.customers.retrieve(
+                organization.stripe_customer_id,
+            );
+            const defaultPm = (customer as any).invoice_settings
+                ?.default_payment_method;
+            if (!defaultPm) {
+                return errorResponse(
+                    "No default payment method found and none provided",
+                    400,
+                );
+            }
+            paymentMethodToUse = defaultPm;
         }
 
         // 3. Create PaymentIntent (Charge)
@@ -77,7 +84,8 @@ Deno.serve(async (req) => {
             currency: currency,
             customer: organization.stripe_customer_id,
             payment_method: paymentMethodToUse,
-            description: `Purchase of ${numberOfCredits} credits`,
+            description: description ||
+                `Purchase of ${numberOfCredits} credits`,
             confirm: true,
             automatic_payment_methods: {
                 enabled: true,
@@ -99,10 +107,6 @@ Deno.serve(async (req) => {
         }
 
         // 4. Update Credits Allocation (Add credits)
-        // We strictly use rpc or direct update. Since we have credits_allocation table:
-        // We need to upsert or update.
-
-        // First check if allocation exists for this user
         const { data: allocation } = await supabaseClient
             .from("credits_allocation")
             .select("*")
@@ -115,8 +119,6 @@ Deno.serve(async (req) => {
                 .update({
                     credits_available: allocation.credits_available +
                         numberOfCredits,
-                    // We might want to track 'total_credits_purchased' but schema has 'total_credits_used'.
-                    // For now just updating available.
                     updated_at: new Date().toISOString(),
                 })
                 .eq("user_id", user.id);
@@ -130,11 +132,6 @@ Deno.serve(async (req) => {
                     total_credits_used: 0,
                 });
         }
-
-        // 5. Record Transaction in Billing History (via simple insert or rely on webhook?)
-        // User asked for /getBillingHistory so we should probably record it or rely on Stripe.
-        // Our /getBillingHistory currently fetches from Stripe directly, so we don't need to insert into a local table!
-        // Perfect.
 
         return successResponse({
             status: "success",

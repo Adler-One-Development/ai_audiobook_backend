@@ -1623,10 +1623,7 @@ paths:
                   status:
                     type: string
                     example: success
-                  message:
-                    type: string
-                    example: Billing history fetched successfully
-                  billing_history:
+                  transactions:
                     type: array
                     items:
                       type: object
@@ -1639,14 +1636,26 @@ paths:
                           type: string
                         status:
                           type: string
-                        created:
-                          type: integer
-                        receipt_url:
-                          type: string
                         description:
                           type: string
-                        payment_method:
+                        created:
                           type: string
+                          format: date-time
+                        receipt_url:
+                          type: string
+                        payment_method:
+                          type: object
+                          properties:
+                            brand:
+                              type: string
+                            last4:
+                              type: string
+                        refunded:
+                          type: boolean
+                        amount_refunded:
+                          type: number
+                  has_more:
+                    type: boolean
                   processingTimeMs:
                     type: integer
 

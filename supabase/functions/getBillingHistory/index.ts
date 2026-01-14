@@ -13,6 +13,7 @@ Deno.serve(async (req) => {
 
     try {
         const supabaseClient = createClient(req);
+        const { starting_after, limit } = await req.json().catch(() => ({}));
 
         // Get Requesting User and Organization
         const { user, organization, error } = await getOrganization(
@@ -28,41 +29,48 @@ Deno.serve(async (req) => {
             return errorResponse("Only admins can view billing history", 403);
         }
 
+        const startTime = Date.now();
+
         if (!organization.stripe_customer_id) {
             return successResponse({
                 status: "success",
-                message: "No billing history found",
-                billing_history: [],
-                processingTimeMs: 0,
+                transactions: [],
+                has_more: false,
+                processingTimeMs: Date.now() - startTime,
             }, 200);
         }
 
-        const startTime = Date.now();
-
         // List Charges from Stripe
-        // Using limit: 100 for now, could add pagination params later
-        const charges = await stripe.charges.list({
+        const params: any = {
             customer: organization.stripe_customer_id,
-            limit: 100,
-        });
+            limit: limit || 10,
+        };
+        if (starting_after) {
+            params.starting_after = starting_after;
+        }
 
-        const formattedHistory = charges.data.map((charge) => ({
+        const charges = await stripe.charges.list(params);
+
+        const formattedTransactions = charges.data.map((charge) => ({
             id: charge.id,
             amount: charge.amount / 100, // Convert cents to dollars
             currency: charge.currency,
-            status: charge.status,
-            created: charge.created,
-            receipt_url: charge.receipt_url,
+            status: charge.status, // "succeeded", "pending", "failed"
             description: charge.description,
-            payment_method: charge.payment_method_details?.card?.brand
-                ? `${charge.payment_method_details.card.brand} ending in ${charge.payment_method_details.card.last4}`
-                : "Unknown",
+            created: new Date(charge.created * 1000).toISOString(), // Convert Unix timestamp to ISO
+            receipt_url: charge.receipt_url,
+            payment_method: {
+                brand: charge.payment_method_details?.card?.brand || "unknown",
+                last4: charge.payment_method_details?.card?.last4 || "0000",
+            },
+            refunded: charge.refunded,
+            amount_refunded: charge.amount_refunded / 100,
         }));
 
         return successResponse({
             status: "success",
-            message: "Billing history fetched successfully",
-            billing_history: formattedHistory,
+            transactions: formattedTransactions,
+            has_more: charges.has_more,
             processingTimeMs: Date.now() - startTime,
         }, 200);
     } catch (error: any) {
