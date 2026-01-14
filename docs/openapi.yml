@@ -1291,15 +1291,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-tags:
-  - name: Authentication
-    description: User authentication and account management endpoints
-  - name: Settings Management
-    description: User profile and settings management endpoints
-  - name: Payment Management
-    description: Payment methods and billing history management endpoints
-
-paths:
   /addPaymentMethod:
     post:
       summary: Add a new payment method
@@ -1717,3 +1708,11 @@ paths:
                         type: string
                   processingTimeMs:
                     type: integer
+
+tags:
+  - name: Authentication
+    description: User authentication and account management endpoints
+  - name: Settings Management
+    description: User profile and settings management endpoints
+  - name: Payment Management
+    description: Payment methods and billing history management endpoints
