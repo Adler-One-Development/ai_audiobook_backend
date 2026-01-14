@@ -1,3 +1,7 @@
+-- Force recreate the OAuth user trigger with updated pg_net call
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP FUNCTION IF EXISTS handle_new_oauth_user();
+
 -- Create a function to automatically set up new OAuth users
 CREATE OR REPLACE FUNCTION handle_new_oauth_user()
 RETURNS TRIGGER AS $$
@@ -5,6 +9,7 @@ DECLARE
     org_id UUID;
     user_full_name TEXT;
     google_picture_url TEXT;
+    request_id BIGINT;
 BEGIN
     -- Check if user already exists in users table
     IF EXISTS (SELECT 1 FROM public.users WHERE id = NEW.id) THEN
@@ -46,7 +51,7 @@ BEGIN
 
     -- If Google picture exists, call edge function to sync it
     IF google_picture_url IS NOT NULL AND google_picture_url != '' THEN
-        PERFORM extensions.http_post(
+        SELECT INTO request_id net.http_post(
             url := 'https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/syncGoogleProfilePicture',
             headers := '{"Content-Type": "application/json", "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhza2FxdmpydXF6bWdyd3hteHhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMzc5NDUsImV4cCI6MjA4MzgxMzk0NX0.QHdr1A14du_t_hiE5_a652iwgyGuXfl7VdSLkrsfILQ"}'::jsonb,
             body := jsonb_build_object(
@@ -61,7 +66,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create trigger for new auth users
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW
