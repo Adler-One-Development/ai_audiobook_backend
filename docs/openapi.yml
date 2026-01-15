@@ -1,0 +1,2045 @@
+openapi: 3.0.0
+info:
+  title: AI Audiobook Backend - Authentication API
+  description: |
+    Authentication API endpoints for the AI Audiobook application.
+
+    ## Authentication Methods
+    - **SupabaseAuth**: Use your Supabase anon key in the `apikey` header
+    - **BearerAuth**: Use JWT access token obtained from login/signup
+
+    ## Base URL (QA Environment)
+    `https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1`
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1
+    description: QA Environment
+
+# Global security - require apikey for all endpoints
+# BearerAuth is also available and will be sent if provided in authorize dialog
+security:
+  - SupabaseAuth: []
+
+components:
+  securitySchemes:
+    SupabaseAuth:
+      type: apiKey
+      in: header
+      name: apikey
+      description: Supabase anonymous API key
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token from login/signup
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User UUID from Supabase Auth
+        fullName:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        phone:
+          type: string
+          nullable: true
+          description: User's phone number
+        publisherName:
+          type: string
+          nullable: true
+          description: Publisher name
+        userType:
+          type: string
+          enum: [ADMIN, MEMBER, OWNER]
+          description: User access level
+        role:
+          type: string
+          nullable: true
+          description: User's job title
+        industry:
+          type: string
+          nullable: true
+          description: Industry name
+        profilePicture:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            url:
+              type: string
+              format: uri
+        is2FAEnabled:
+          type: boolean
+          description: Whether 2FA is enabled for the user
+      required:
+        - id
+        - fullName
+        - email
+        - userType
+
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+        message:
+          type: string
+      required:
+        - status
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string
+      required:
+        - status
+        - message
+
+paths:
+  /signUp:
+    post:
+      summary: Register a new user
+      description: |
+        Creates a new user account with email and password.
+
+        **Default User Type**: All new users are assigned `ADMIN` userType by default.
+
+        **Password Requirements**:
+        - Minimum 8 characters
+        - At least one uppercase letter (A-Z)
+        - At least one lowercase letter (a-z)
+        - At least one number (0-9)
+        - At least one special character (!@#$%^&*)
+      operationId: signUp
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - fullName
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+                fullName:
+                  type: string
+                  example: John Doe
+      responses:
+        "201":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/User"
+              example:
+                status: success
+                message: User created successfully
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  fullName: John Doe
+                  email: user@example.com
+                  phone: null
+                  publisherName: null
+                  userType: ADMIN
+                  role: null
+                  industry: null
+                  profilePicture: null
+        "400":
+          description: Bad request - Invalid input or weak password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Password does not meet requirements
+                errors:
+                  - Password must be at least 8 characters long
+                  - Password must contain at least one uppercase letter (A-Z)
+
+  /login:
+    post:
+      summary: Authenticate user
+      description: |
+        Authenticates a user with email and password.
+        Returns JWT access token, refresh token, and user details.
+      operationId: login
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      token:
+                        type: string
+                        description: JWT access token
+                      refreshToken:
+                        type: string
+                        description: Refresh token for obtaining new access tokens
+                      expiresIn:
+                        type: integer
+                        description: Token expiration time in seconds
+                      userType:
+                        type: string
+                        enum: [ADMIN, MEMBER, OWNER]
+                        description: User access level
+                      mfaRequired:
+                        type: boolean
+                        description: Whether User needs to verify MFA
+                      user:
+                        $ref: "#/components/schemas/User"
+              example:
+                status: success
+                message: Login successful
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: xYz123RefreshToken456...
+                expiresIn: 3600
+                userType: ADMIN
+                mfaRequired: false
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  fullName: John Doe
+                  email: user@example.com
+                  phone: "+1234567890"
+                  publisherName: ABC Publishers
+                  userType: ADMIN
+                  role: Technician
+                  industry: Publishing
+                  profilePicture:
+                    id: 660e8400-e29b-41d4-a716-446655440000
+                    url: https://example.com/avatar.jpg
+                  is2FAEnabled: false
+        "401":
+          description: Unauthorized - Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Invalid email or password
+
+  /logout:
+    post:
+      summary: Logout user
+      description: |
+        Logs out the current user by invalidating their session.
+
+        After logout, the user's JWT token will no longer be valid.
+      operationId: logout
+      tags:
+        - Authentication
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: No request body required
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Logged out successfully
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Failed to logout
+
+  /refreshToken:
+    post:
+      summary: Refresh access token
+      description: |
+        Obtains a new access token using a valid refresh token.
+        Returns new access token and refresh token.
+
+        **Note:** This endpoint uses the refresh token from the request body, not the Authorization header.
+      operationId: refreshToken
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: xYz123RefreshToken456...
+      responses:
+        "200":
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      token:
+                        type: string
+                        description: New JWT access token
+                      refreshToken:
+                        type: string
+                        description: New refresh token
+                      expiresIn:
+                        type: integer
+                        description: Token expiration time in seconds
+              example:
+                status: success
+                message: Token refreshed successfully
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: aBc456NewRefreshToken789...
+                expiresIn: 3600
+        "401":
+          description: Unauthorized - Invalid or expired refresh token
+          content:
+  /loginWithGoogle:
+    post:
+      summary: Login with Google OAuth
+      description: |
+        Initiates Google OAuth login flow and returns the OAuth URL.
+
+        Frontend should redirect user to the returned URL for authentication.
+        After successful authentication, user will be redirected back with access tokens.
+      operationId: loginWithGoogle
+      tags:
+        - Authentication
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redirect_to:
+                  type: string
+                  description: Supabase auth callback URL
+                  default: https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback
+                return_base_url:
+                  type: string
+                  description: Base URL where user will be redirected with auth tokens after OAuth completes
+                  default: http://localhost:3000
+            example:
+              redirect_to: "https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback"
+              return_base_url: "http://localhost:3000"
+      responses:
+        "200":
+          description: OAuth URL generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  url:
+                    type: string
+                    description: Google OAuth URL to redirect user to
+              example:
+                status: success
+                message: Google OAuth URL generated
+                url: "https://accounts.google.com/o/oauth2/v2/auth?..."
+        "500":
+          description: Failed to generate OAuth URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /signUpWithGoogle:
+    post:
+      summary: Sign up with Google OAuth
+      description: |
+        Initiates Google OAuth sign up flow and returns the OAuth URL.
+
+        Frontend should redirect user to the returned URL for authentication.
+        After successful authentication:
+        - User auth account is created
+        - Organization is automatically created (user as owner)
+        - User record is created with userType ADMIN
+        - Full name is extracted from Google profile
+      operationId: signUpWithGoogle
+      tags:
+        - Authentication
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redirect_to:
+                  type: string
+                  description: Supabase auth callback URL
+                  default: https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback
+                return_base_url:
+                  type: string
+                  description: Base URL where user will be redirected with auth tokens after OAuth completes
+                  default: http://localhost:3000
+            example:
+              redirect_to: "https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback"
+              return_base_url: "http://localhost:3000"
+      responses:
+        "200":
+          description: OAuth URL generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  url:
+                    type: string
+                    description: Google OAuth URL to redirect user to
+              example:
+                status: success
+                message: Google OAuth URL generated
+                url: "https://accounts.google.com/o/oauth2/v2/auth?..."
+        "500":
+          description: Failed to generate OAuth URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /forgotPassword:
+    post:
+      summary: Request password reset
+      description: |
+        Sends a password reset email to the user.
+        For security, always returns success regardless of whether the email exists.
+      operationId: forgotPassword
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        "200":
+          description: Request processed (email sent if account exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: If the email exists in our system, a password reset link has been sent
+
+  /resetPassword:
+    post:
+      summary: Reset password
+      description: |
+        Resets the user's password using the access token from the password reset email.
+
+        **Note:** The `access_token` in the request body comes from the password reset email link.
+
+        **Password Requirements**:
+        - Minimum 8 characters
+        - At least one uppercase letter (A-Z)
+        - At least one lowercase letter (a-z)
+        - At least one number (0-9)
+        - At least one special character (!@#$%^&*)
+      operationId: resetPassword
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - access_token
+                - newPassword
+              properties:
+                access_token:
+                  type: string
+                  description: Access token from password reset email
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                newPassword:
+                  type: string
+                  format: password
+                  example: NewSecurePass123!
+      responses:
+        "200":
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Password has been reset successfully
+        "400":
+          description: Bad request - Invalid token or weak password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                weakPassword:
+                  value:
+                    status: error
+                    message: Password does not meet requirements
+                    errors:
+                      - Password must contain at least one special character (!@#$%^&* etc.)
+                expiredToken:
+                  value:
+                    status: error
+                    message: Failed to reset password. The reset link may have expired.
+
+  /getAllIndustries:
+    get:
+      summary: Get all industries
+      description: |
+        Retrieves a list of all available industries for book publishing professionals.
+
+        This endpoint is public and does not require authentication.
+      operationId: getAllIndustries
+      tags:
+        - Settings Management
+      responses:
+        "200":
+          description: Industries fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  industries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        industry_name:
+                          type: string
+              example:
+                status: success
+                message: Industries fetched successfully
+                industries:
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    industry_name: Academic Publishing
+                  - id: 660e8400-e29b-41d4-a716-446655440001
+                    industry_name: Fiction & Literature
+
+  /getUserProfile:
+    get:
+      summary: Get user profile
+      description: |
+        Retrieves the authenticated user's complete profile including industry and profile picture.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: getUserProfile
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Profile fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  profile:
+                    type: object
+                    properties:
+                      full_name:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                        nullable: true
+                      publisher_name:
+                        type: string
+                        nullable: true
+                      role:
+                        type: string
+                        nullable: true
+                      industry:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          industry_name:
+                            type: string
+                      profile_picture:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          url:
+                            type: string
+                            format: uri
+              example:
+                status: success
+                message: Profile fetched successfully
+                profile:
+                  full_name: John Doe
+                  email: john@example.com
+                  phone: "+1234567890"
+                  publisher_name: ABC Publishers
+                  role: Editor
+                  industry:
+                    id: 550e8400-e29b-41d4-a716-446655440000
+                    industry_name: Academic Publishing
+                  profile_picture:
+                    id: 660e8400-e29b-41d4-a716-446655440000
+                    url: https://example.com/profile.jpg
+        "401":
+          description: Unauthorized - Missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /updateUserProfile:
+    put:
+      summary: Update user profile
+      description: |
+        Updates the authenticated user's profile information.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **File Upload:** Supports multipart/form-data for profile picture upload.
+
+        **Note:** If a profile picture is uploaded, any existing profile picture will be deleted from storage.
+      operationId: updateUserProfile
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                  description: User's full name
+                phone:
+                  type: string
+                  description: Phone number
+                publisher_name:
+                  type: string
+                  description: Publisher name
+                role:
+                  type: string
+                  description: Job title/role
+                industry_id:
+                  type: string
+                  format: uuid
+                  description: Industry ID from /getAllIndustries
+                profile_picture:
+                  type: string
+                  format: binary
+                  description: Profile picture image file
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                phone:
+                  type: string
+                publisher_name:
+                  type: string
+                role:
+                  type: string
+                industry_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  profile:
+                    type: object
+                    properties:
+                      full_name:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      publisher_name:
+                        type: string
+                      role:
+                        type: string
+                      industry:
+                        type: object
+                        nullable: true
+                      profile_picture:
+                        type: object
+                        nullable: true
+              example:
+                status: success
+                message: Profile updated successfully
+                profile:
+                  full_name: John Doe
+                  email: john@example.com
+                  phone: "+1234567890"
+                  publisher_name: ABC Publishers
+                  role: Senior Editor
+                  industry:
+                    id: 550e8400-e29b-41d4-a716-446655440000
+                    industry_name: Academic Publishing
+                  profile_picture:
+                    id: 660e8400-e29b-41d4-a716-446655440000
+                    url: https://example.com/new-profile.jpg
+        "401":
+          description: Unauthorized - Missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /changePassword:
+    post:
+      summary: Change user password
+      description: |
+        Changes the authenticated user's password.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Validations:**
+        - Old password must be correct
+        - New password must be different from old password
+        - New password must meet strength requirements (min 8 chars, uppercase, lowercase, number, special char)
+      operationId: changePassword
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - old_password
+                - new_password
+              properties:
+                old_password:
+                  type: string
+                  format: password
+                  description: Current password
+                new_password:
+                  type: string
+                  format: password
+                  description: New password (must meet strength requirements)
+            example:
+              old_password: OldPass123!
+              new_password: NewSecurePass456!
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Password changed successfully
+        "400":
+          description: Bad request - Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                samePassword:
+                  value:
+                    status: error
+                    message: New password cannot be the same as old password
+                weakPassword:
+                  value:
+                    status: error
+                    message: New password does not meet requirements
+                    errors:
+                      - Password must contain at least one special character (!@#$%^&* etc.)
+        "401":
+          description: Unauthorized - Old password incorrect or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Old password is incorrect
+
+  /getOrganization:
+    get:
+      summary: Get user's organization
+      description: |
+        Retrieves the authenticated user's organization details.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: getOrganization
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Organization fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      ownerId:
+                        type: string
+                        format: uuid
+                      memberIds:
+                        type: array
+                        items:
+                          type: string
+                          format: uuid
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+              example:
+                status: success
+                message: Organization fetched successfully
+                organization:
+                  id: 660e8400-e29b-41d4-a716-446655440001
+                  ownerId: e2cad916-38c3-488e-9e11-fb20f0380f16
+                  memberIds: ["550e8400-e29b-41d4-a716-446655440000"]
+                  createdAt: "2026-01-14T00:00:00Z"
+                  updatedAt: "2026-01-14T00:00:00Z"
+        "404":
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: User is not part of any organization
+
+  /getAllOrganizationMembers:
+    get:
+      summary: Get all organization members
+      description: |
+        Retrieves complete details of all members in the authenticated user's organization, including the owner.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Returns:** Full user details including profile pictures and industry information
+      operationId: getAllOrganizationMembers
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Organization members fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        fullName:
+                          type: string
+                        email:
+                          type: string
+                        phone:
+                          type: string
+                          nullable: true
+                        publisherName:
+                          type: string
+                          nullable: true
+                        userType:
+                          type: string
+                          enum: [ADMIN, OWNER, MEMBER]
+                        role:
+                          type: string
+                          nullable: true
+                        industry:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            industryName:
+                              type: string
+                        profilePicture:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            url:
+                              type: string
+                        isOwner:
+                          type: boolean
+                        createdAt:
+                          type: string
+                          format: date-time
+                  totalMembers:
+                    type: integer
+              example:
+                status: success
+                message: Organization members fetched successfully
+                members:
+                  - id: e2cad916-38c3-488e-9e11-fb20f0380f16
+                    fullName: John Doe
+                    email: john@example.com
+                    phone: "+1234567890"
+                    publisherName: Acme Publishing
+                    userType: OWNER
+                    role: CEO
+                    industry:
+                      id: 8ed98054-6dfe-4383-bd35-9a822b8f06c3
+                      industryName: Academic Publishing
+                    profilePicture:
+                      id: abc123
+                      url: https://example.com/pic.jpg
+                    isOwner: true
+                    createdAt: "2026-01-14T00:00:00Z"
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    fullName: Jane Smith
+                    email: jane@example.com
+                    phone: null
+                    publisherName: null
+                    userType: MEMBER
+                    role: Editor
+                    industry: null
+                    profilePicture: null
+                    isOwner: false
+                    createdAt: "2026-01-14T00:00:00Z"
+                totalMembers: 2
+        "404":
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /createUser:
+    post:
+      summary: Create user in organization
+      description: |
+        Creates a new user and adds them to the requesting user's organization.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Authorization Rules:**
+        - Only ADMIN and OWNER can create users
+        - New user is added to the same organization as the creating user
+        - Password reset email is sent to the new user to set their password
+      operationId: createUser
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - full_name
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email address for the new user
+                full_name:
+                  type: string
+                  description: Full name of the new user
+                role:
+                  type: string
+                  enum: [ADMIN, OWNER, MEMBER]
+                  description: Role for the new user
+            example:
+              email: newuser@example.com
+              full_name: John Doe
+              role: MEMBER
+      responses:
+        "201":
+          description: User created successfully and password reset email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                      userType:
+                        type: string
+                      organizationId:
+                        type: string
+                        format: uuid
+              example:
+                status: success
+                message: User created successfully. Password reset email sent.
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  email: newuser@example.com
+                  userType: MEMBER
+                  organizationId: 660e8400-e29b-41d4-a716-446655440001
+        "400":
+          description: Bad request - Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Only ADMIN and OWNER can create users
+
+  /deleteUser:
+    delete:
+      summary: Delete user from organization
+      description: |
+        Deletes a user from the organization.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Deletion Rules:**
+        - Cannot delete yourself
+        - Cannot delete the organization owner
+        - MEMBER cannot delete anyone
+        - OWNER cannot delete ADMIN
+        - MEMBER cannot delete OWNER or ADMIN
+      operationId: deleteUser
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                  description: ID of the user to delete
+            example:
+              user_id: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        "200":
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: User deleted successfully
+        "403":
+          description: Forbidden - Insufficient permissions or deletion not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                cannotDeleteSelf:
+                  value:
+                    status: error
+                    message: You cannot delete yourself
+                cannotDeleteOwner:
+                  value:
+                    status: error
+                    message: The organization owner cannot be deleted
+                ownerCannotDeleteAdmin:
+                  value:
+                    status: error
+                    message: Owners cannot delete Admins
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deleteAdmin:
+    delete:
+      summary: Delete own account
+      description: |
+        Permanently deletes the authenticated user's account and all associated data.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **This action will delete:**
+        - User's auth account
+        - User's profile data
+        - User's profile picture (storage and database)
+        - User's organization
+        - **All members in the user's organization** (their auth, profiles, and profile pictures)
+
+        **Warning:** This action is irreversible and will delete the entire organization!
+      operationId: deleteAdmin
+      tags:
+        - Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Account deleted successfully
+        "401":
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /get2FAStatus:
+    get:
+      summary: Get 2FA status
+      description: |
+        Retrieves the user's 2FA status.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: get2FAStatus
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is2FAEnabled:
+                    type: boolean
+                    description: Whether 2FA is enabled for the user
+              example:
+                is2FAEnabled: true
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaEnrollStart:
+    post:
+      summary: Initialize MFA enrollment
+      description: |
+        Generates a QR code and secret for enrolling a new TOTP factor.
+        Returns the SVG QR code and the URI for authenticator apps.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: mfaEnrollStart
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Enrollment started successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  type:
+                    type: string
+                  totp:
+                    type: object
+                    properties:
+                      qr_code:
+                        type: string
+                      secret:
+                        type: string
+                      uri:
+                        type: string
+              example:
+                id: 34e62840-7ab1-424a-8472-3c7b39523262
+                type: totp
+                totp:
+                  qr_code: <svg>...</svg>
+                  secret: JBSWY3DPEHPK3PXP
+                  uri: otpauth://totp/...
+        "400":
+          description: Enrollment failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaEnrollComplete:
+    post:
+      summary: Finalize MFA enrollment
+      description: |
+        Verifies the code from the authenticator app to finalize enrollment.
+        Sets `is_2fa_enabled` to true for the user.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: mfaEnrollComplete
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - factorId
+                - code
+              properties:
+                factorId:
+                  type: string
+                  description: The ID of the factor returned from enrollMFA
+                code:
+                  type: string
+                  description: The 6-digit TOTP code from the app
+      responses:
+        "200":
+          description: Enrollment finalized successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  type:
+                    type: string
+                  status:
+                    type: string
+                    enum: [verified]
+              example:
+                id: 34e62840-7ab1-424a-8472-3c7b39523262
+                type: totp
+                status: verified
+        "400":
+          description: Verification failed or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaListFactors:
+    get:
+      summary: List MFA factors
+      description: |
+        Lists all enrolled MFA factors for the user.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: mfaListFactors
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Factors listed successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    status:
+                      type: string
+                      enum: [verified, unverified]
+                    factor_type:
+                      type: string
+                      enum: [totp]
+              example:
+                - id: 34e62840-7ab1-424a-8472-3c7b39523262
+                  status: verified
+                  factor_type: totp
+        "400":
+          description: Error fetching factors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaUnenroll:
+    delete:
+      summary: Unenroll MFA factor
+      description: |
+        Removes a specified MFA factor and updates user status.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: mfaUnenroll
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - factorId
+              properties:
+                factorId:
+                  type: string
+      responses:
+        "200":
+          description: Factor unenrolled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+              example:
+                id: 34e62840-7ab1-424a-8472-3c7b39523262
+        "400":
+          description: Error unenrolling factor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaVerify:
+    post:
+      summary: Challenge and Verify MFA Factor
+      description: Challenges and verifies an MFA factor in a single step using the Supabase challengeAndVerify API.
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                factorId:
+                  type: string
+                  description: The ID of the factor to challenge and verify.
+                code:
+                  type: string
+                  description: The code provided by the user.
+              required:
+                - factorId
+                - code
+      responses:
+        "200":
+          description: Successful challenge and verification
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Factor challenged and verified successfully
+                  id:
+                    type: string
+                  type:
+                    type: string
+                  expires_at:
+                    type: integer
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+
+  /addPaymentMethod:
+    post:
+      summary: Add a new payment method
+      description: |
+        Adds a new payment method to the organization's Stripe customer and sets it as default.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: addPaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method_id
+              properties:
+                payment_method_id:
+                  type: string
+                  description: Stripe Payment Method ID (pm_...)
+            example:
+              payment_method_id: pm_1234567890abcdefghijklmn
+      responses:
+        "200":
+          description: Payment method added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Payment method added and set as default
+                  payment_method:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                      card:
+                        type: object
+                        properties:
+                          brand:
+                            type: string
+                          last4:
+                            type: string
+                          exp_month:
+                            type: integer
+                          exp_year:
+                            type: integer
+                      is_default:
+                        type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /getPaymentMethods:
+    post:
+      summary: Get all payment methods
+      description: |
+        Retrieves all payment methods associated with the organization.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: getPaymentMethods
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Payment methods retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Payment methods fetched successfully
+                  payment_methods:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        card:
+                          type: object
+                          properties:
+                            brand:
+                              type: string
+                            last4:
+                              type: string
+                            exp_month:
+                              type: integer
+                            exp_year:
+                              type: integer
+                        is_default:
+                          type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /setDefaultPaymentMethod:
+    post:
+      summary: Set default payment method
+      description: |
+        Sets a specific payment method as the default for the organization.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: setDefaultPaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method_id
+              properties:
+                payment_method_id:
+                  type: string
+                  description: Stripe Payment Method ID to set as default
+            example:
+              payment_method_id: pm_1234567890abcdefghijklmn
+      responses:
+        "200":
+          description: Default payment method updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Default payment method updated successfully
+                  payment_method:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                      card:
+                        type: object
+                        properties:
+                          brand:
+                            type: string
+                          last4:
+                            type: string
+                          exp_month:
+                            type: integer
+                          exp_year:
+                            type: integer
+                      is_default:
+                        type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /updatePaymentMethod:
+    post:
+      summary: Update payment method details
+      description: |
+        Updates details (expiry, name) of an existing payment method.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: updatePaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method_id
+              properties:
+                payment_method_id:
+                  type: string
+                exp_month:
+                  type: integer
+                exp_year:
+                  type: integer
+                name:
+                  type: string
+            example:
+              payment_method_id: pm_1234567890abcdefghijklmn
+              exp_month: 12
+              exp_year: 2026
+      responses:
+        "200":
+          description: Payment method updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Payment method updated successfully
+                  payment_method:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                      card:
+                        type: object
+                        properties:
+                          brand:
+                            type: string
+                          last4:
+                            type: string
+                          exp_month:
+                            type: integer
+                          exp_year:
+                            type: integer
+                      billing_details:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                      is_default:
+                        type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /deletePaymentMethod:
+    post:
+      summary: Delete a payment method
+      description: |
+        Deletes a payment method from the organization.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: deletePaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method_id
+              properties:
+                payment_method_id:
+                  type: string
+            example:
+              payment_method_id: pm_1234567890abcdefghijklmn
+      responses:
+        "200":
+          description: Payment method deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Payment method deleted successfully
+                  processingTimeMs:
+                    type: integer
+
+  /getBillingHistory:
+    post:
+      summary: Get billing history
+      description: |
+        Retrieves billing history (charges) for the organization.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: getBillingHistory
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Billing history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  transactions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        amount:
+                          type: number
+                        currency:
+                          type: string
+                        status:
+                          type: string
+                        description:
+                          type: string
+                        created:
+                          type: string
+                          format: date-time
+                        receipt_url:
+                          type: string
+                        payment_method:
+                          type: object
+                          properties:
+                            brand:
+                              type: string
+                            last4:
+                              type: string
+                        refunded:
+                          type: boolean
+                        amount_refunded:
+                          type: number
+                  has_more:
+                    type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /getCreditAllocation:
+    get:
+      summary: Get credit allocation
+      description: |
+        Retrieves the authenticated user's credit balances (available, used, total).
+
+        **Requires:** JWT Bearer token.
+      operationId: getCreditAllocation
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Credit allocation retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Credit allocation fetched successfully
+                  allocation:
+                    type: object
+                    properties:
+                      user_id:
+                        type: string
+                        format: uuid
+                      credits_available:
+                        type: integer
+                      credits_used:
+                        type: integer
+                      total_credits_used:
+                        type: integer
+                  processingTimeMs:
+                    type: integer
+
+  /chargePaymentMethod:
+    post:
+      summary: Purchase credits
+      description: |
+        Charges the organization's default payment method to purchase credits.
+        Price is calculated based on `credits_pricing` table.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: chargePaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - numberOfCredits
+              properties:
+                numberOfCredits:
+                  type: integer
+                  minimum: 1
+                  description: Number of credits to purchase
+            example:
+              numberOfCredits: 100
+      responses:
+        "200":
+          description: Charge successful and credits allocated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Credits purchased successfully
+                  purchase:
+                    type: object
+                    properties:
+                      credits_added:
+                        type: integer
+                      amount_charged:
+                        type: number
+                      currency:
+                        type: string
+                      price_per_credit:
+                        type: number
+                      transaction_id:
+                        type: string
+                  processingTimeMs:
+                    type: integer
+>>>>>>> 944c6cbf9501981720d75323836b0c10a83460ea
+
+tags:
+  - name: Authentication
+    description: User authentication and account management endpoints
+  - name: Settings Management
+    description: User profile and settings management endpoints
+  - name: Multi-Factor Authentication
+    description: 2FA enrollment and verification endpoints
+  - name: Payment Management
+    description: Payment methods and billing history management endpoints

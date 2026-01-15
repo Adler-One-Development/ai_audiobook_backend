@@ -384,10 +384,146 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 [functions.api]
 enabled = true
 verify_jwt = true
-import_map = "./functions/api/deno.json"
+
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/api/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/api/*.html" ]
+
+# Authentication endpoints (public - no JWT verification required)
+[functions.login]
+enabled = true
+verify_jwt = false
+
+[functions.signUp]
+enabled = true
+verify_jwt = false
+
+[functions.refreshToken]
+enabled = true
+verify_jwt = false
+
+[functions.forgotPassword]
+enabled = true
+verify_jwt = false
+
+[functions.resetPassword]
+enabled = true
+verify_jwt = false
+
+[functions.logout]
+enabled = true
+verify_jwt = true
+
+# Settings Management endpoints
+[functions.getAllIndustries]
+enabled = true
+verify_jwt = false
+
+[functions.getUserProfile]
+enabled = true
+verify_jwt = true
+
+[functions.updateUserProfile]
+enabled = true
+verify_jwt = true
+
+[functions.changePassword]
+enabled = true
+verify_jwt = false
+
+[functions.createUser]
+enabled = true
+verify_jwt = false
+
+[functions.deleteUser]
+enabled = true
+verify_jwt = false
+
+[functions.deleteAdmin]
+enabled = true
+verify_jwt = false
+
+[functions.getOrganization]
+enabled = true
+verify_jwt = false
+
+[functions.loginWithGoogle]
+enabled = true
+verify_jwt = false
+
+[functions.signUpWithGoogle]
+enabled = true
+verify_jwt = false
+
+[functions.syncGoogleProfilePicture]
+enabled = true
+verify_jwt = false
+
+[functions.stripeWebhook]
+enabled = true
+verify_jwt = false
+
+[functions.addPaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.getPaymentMethods]
+enabled = true
+verify_jwt = true
+
+[functions.setDefaultPaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.updatePaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.deletePaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.getBillingHistory]
+enabled = true
+verify_jwt = true
+
+[functions.chargePaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.getAllOrganizationMembers]
+enabled = true
+verify_jwt = false
+
+[functions.get2FAStatus]
+enabled = true
+verify_jwt = false
+
+[functions.mfaEnrollStart]
+enabled = true
+verify_jwt = false
+
+[functions.mfaEnrollComplete]
+enabled = true
+verify_jwt = false
+
+
+[functions.mfaListFactors]
+enabled = true
+verify_jwt = false
+
+[functions.mfaUnenroll]
+enabled = true
+verify_jwt = false
+
+[functions.mfaVerify]
+enabled = true
+verify_jwt = false
+
+
+[functions.getCreditAllocation]
+enabled = true
+verify_jwt = true
