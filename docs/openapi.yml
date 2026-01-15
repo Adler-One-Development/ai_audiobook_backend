@@ -2032,7 +2032,6 @@ paths:
                         type: string
                   processingTimeMs:
                     type: integer
->>>>>>> 944c6cbf9501981720d75323836b0c10a83460ea
 
 tags:
   - name: Authentication
