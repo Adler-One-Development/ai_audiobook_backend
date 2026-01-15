@@ -16,13 +16,14 @@ serve(async (req) => {
 
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: "totp",
+      issuer: "AI Audiobook",
     });
 
     if (error) {
         throw error;
     }
 
-    return successResponse({
+    return successResponse({ 
       status: "success",
       message: "Enrollment initiated successfully",
       ...data,
