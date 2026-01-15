@@ -421,6 +421,11 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/getUserProfile/index.ts"
 
+[functions.removeProfilePicture]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/removeProfilePicture/index.ts"
+
 [functions.updateUserProfile]
 enabled = true
 verify_jwt = true
