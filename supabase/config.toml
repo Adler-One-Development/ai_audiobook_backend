@@ -498,7 +498,7 @@ verify_jwt = true
 enabled = true
 verify_jwt = false
 
-[functions.get2FAStatus]
+[functions.get2fastatus]
 enabled = true
 verify_jwt = false
 
