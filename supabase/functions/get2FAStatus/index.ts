@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createAdminClient } from "../_shared/supabase-client.ts";
-import { handleCorsPreFlight, successResponse, errorResponse } from "../_shared/response-helpers.ts";
+import {
+  errorResponse,
+  handleCorsPreFlight,
+  successResponse,
+} from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
 
 serve(async (req) => {
@@ -9,7 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { user, error: authError } = await getAuthenticatedUser(req);
+    const { user, error: authError } = await getAuthenticatedUser(req, {
+      skipMfaCheck: true,
+    });
     if (authError) return authError;
 
     const supabase = createAdminClient();
@@ -22,8 +28,8 @@ serve(async (req) => {
       .single();
 
     if (dbError) {
-        console.error("Error fetching 2FA status:", dbError);
-        return errorResponse("Could not retrieve user data", 500);
+      console.error("Error fetching 2FA status:", dbError);
+      return errorResponse("Could not retrieve user data", 500);
     }
 
     return successResponse({ is2FAEnabled: userData?.is_2fa_enabled ?? false });

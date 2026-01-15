@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClientFromRequest } from "../_shared/supabase-client.ts";
-import { handleCorsPreFlight, successResponse, errorResponse } from "../_shared/response-helpers.ts";
+import {
+  errorResponse,
+  handleCorsPreFlight,
+  successResponse,
+} from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
 
 serve(async (req) => {
@@ -9,7 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { error: authError } = await getAuthenticatedUser(req);
+    const { error: authError } = await getAuthenticatedUser(req, {
+      skipMfaCheck: true,
+    });
     if (authError) return authError;
 
     const supabase = createClientFromRequest(req);
@@ -20,10 +26,10 @@ serve(async (req) => {
     });
 
     if (error) {
-        throw error;
+      throw error;
     }
 
-    return successResponse({ 
+    return successResponse({
       status: "success",
       message: "Enrollment initiated successfully",
       ...data,

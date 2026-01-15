@@ -5,7 +5,10 @@ import { errorResponse } from "./response-helpers.ts";
  * Extracts and validates the authenticated user from the request
  * Use this helper in protected endpoints to ensure users can only access their own data
  */
-export async function getAuthenticatedUser(req: Request) {
+export async function getAuthenticatedUser(
+    req: Request,
+    options: { skipMfaCheck?: boolean } = {},
+) {
     try {
         // Get the authorization header
         const authHeader = req.headers.get("Authorization");
@@ -34,6 +37,41 @@ export async function getAuthenticatedUser(req: Request) {
                     401,
                 ),
             };
+        }
+
+        // Check for MFA requirements
+        if (!options.skipMfaCheck) {
+            const { data: aalData, error: aalError } = await supabase.auth.mfa
+                .getAuthenticatorAssuranceLevel();
+            if (aalError) {
+                console.error("MFA Validation Error:", aalError);
+                // If we can't check, safer to fail validation or proceed? Proceeding might bypass. Failing is safer.
+                return {
+                    user: null,
+                    error: errorResponse(
+                        "Unauthorized - Failed to validate MFA status",
+                        401,
+                    ),
+                };
+            }
+
+            // Check if user has at least one verified factor
+            // The 'user' object from getUser() usually includes factors array if using createClientFromRequest/service_role
+            // However, supabase.auth.getUser() returns User object which has 'factors' property.
+            const verifiedFactors = user.factors?.filter((f: any) =>
+                f.status === "verified"
+            ) || [];
+
+            // If user has verified factors, they MUST be at aal2
+            if (verifiedFactors.length > 0 && aalData.currentLevel !== "aal2") {
+                return {
+                    user: null,
+                    error: errorResponse(
+                        "Unauthorized - MFA Verification Required",
+                        403,
+                    ),
+                };
+            }
         }
 
         return {
