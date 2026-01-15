@@ -109,10 +109,11 @@ Deno.serve(async (req) => {
             .from("users")
             .insert({
                 id: authData.user.id,
-                full_name: full_name, // Use email prefix as default name
+                full_name: full_name,
                 email: email,
                 user_type: role,
                 organization_id: requestingUser.organization_id,
+                created_by: user!.id, // Track who created this user
             })
             .select("id, email, user_type, organization_id")
             .single();

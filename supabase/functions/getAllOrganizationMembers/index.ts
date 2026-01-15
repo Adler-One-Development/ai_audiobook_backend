@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
             return errorResponse("Organization not found", 404);
         }
 
-        // Fetch all users in this organization
+        // Fetch all users in this organization with creator info
         const { data: members, error: membersError } = await adminClient
             .from("users")
             .select(`
@@ -67,13 +67,39 @@ Deno.serve(async (req) => {
           id,
           url
         ),
-        created_at
+        created_at,
+        created_by,
+        creator:created_by (
+          id,
+          full_name,
+          email
+        )
       `)
             .eq("organization_id", userData.organization_id);
 
         if (membersError) {
             console.error("Failed to fetch members:", membersError);
             return errorResponse("Failed to fetch organization members", 500);
+        }
+
+        // Fetch last sign-in info for all members from auth.users
+        const memberIds = (members || []).map((m: any) => m.id);
+        const { data: authUsers, error: authDataError } = await adminClient.auth
+            .admin
+            .listUsers();
+
+        if (authDataError) {
+            console.error("Failed to fetch auth data:", authDataError);
+        }
+
+        // Create a map of user_id -> last_sign_in_at
+        const lastSignInMap = new Map();
+        if (authUsers?.users) {
+            authUsers.users.forEach((authUser: any) => {
+                if (memberIds.includes(authUser.id)) {
+                    lastSignInMap.set(authUser.id, authUser.last_sign_in_at);
+                }
+            });
         }
 
         // Format the response
@@ -99,6 +125,14 @@ Deno.serve(async (req) => {
                 : null,
             isOwner: member.id === organization.owner_id,
             createdAt: member.created_at,
+            createdBy: member.creator
+                ? {
+                    id: member.creator.id,
+                    name: member.creator.full_name,
+                    email: member.creator.email,
+                }
+                : null,
+            lastActive: lastSignInMap.get(member.id) || null,
         }));
 
         // Create response
