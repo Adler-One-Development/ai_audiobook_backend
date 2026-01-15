@@ -41,11 +41,38 @@ export async function getAuthenticatedUser(
 
         // Check for MFA requirements
         if (!options.skipMfaCheck) {
+            const { createAdminClient } = await import("./supabase-client.ts");
+            const adminClient = createAdminClient();
+
+            // Check users table to see if MFA is enabled (Reliable Source of Truth)
+            const { data: userData, error: userError } = await adminClient
+                .from("users")
+                .select("is_2fa_enabled")
+                .eq("id", user.id)
+                .single();
+
+            if (userError) {
+                console.error("Error fetching 2FA status:", userError);
+                // If we can't read the user status, we should probably fail safe?
+                // But strict failure might block valid users if DB has issues.
+                // However, for MFA enforcement, fail-closed is safer.
+                return {
+                    user: null,
+                    error: errorResponse(
+                        "Unauthorized - Could not validate 2FA status",
+                        401,
+                    ),
+                };
+            }
+
+            const isMfaEnabled = userData?.is_2fa_enabled === true;
+
+            // Check current session AAL
             const { data: aalData, error: aalError } = await supabase.auth.mfa
                 .getAuthenticatorAssuranceLevel();
+
             if (aalError) {
                 console.error("MFA Validation Error:", aalError);
-                // If we can't check, safer to fail validation or proceed? Proceeding might bypass. Failing is safer.
                 return {
                     user: null,
                     error: errorResponse(
@@ -55,15 +82,8 @@ export async function getAuthenticatedUser(
                 };
             }
 
-            // Check if user has at least one verified factor
-            // The 'user' object from getUser() usually includes factors array if using createClientFromRequest/service_role
-            // However, supabase.auth.getUser() returns User object which has 'factors' property.
-            const verifiedFactors = user.factors?.filter((f: any) =>
-                f.status === "verified"
-            ) || [];
-
-            // If user has verified factors, they MUST be at aal2
-            if (verifiedFactors.length > 0 && aalData.currentLevel !== "aal2") {
+            // If MFA is enabled for the user, they MUST be at aal2
+            if (isMfaEnabled && aalData.currentLevel !== "aal2") {
                 return {
                     user: null,
                     error: errorResponse(
