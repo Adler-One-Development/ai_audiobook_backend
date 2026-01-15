@@ -83,6 +83,9 @@ components:
             url:
               type: string
               format: uri
+        is2FAEnabled:
+          type: boolean
+          description: Whether 2FA is enabled for the user
       required:
         - id
         - fullName
@@ -245,6 +248,9 @@ paths:
                         type: string
                         enum: [ADMIN, MEMBER, OWNER]
                         description: User access level
+                      mfaRequired:
+                        type: boolean
+                        description: Whether User needs to verify MFA
                       user:
                         $ref: "#/components/schemas/User"
               example:
@@ -254,6 +260,7 @@ paths:
                 refreshToken: xYz123RefreshToken456...
                 expiresIn: 3600
                 userType: ADMIN
+                mfaRequired: false
                 user:
                   id: 550e8400-e29b-41d4-a716-446655440000
                   fullName: John Doe
@@ -266,6 +273,7 @@ paths:
                   profilePicture:
                     id: 660e8400-e29b-41d4-a716-446655440000
                     url: https://example.com/avatar.jpg
+                  is2FAEnabled: false
         "401":
           description: Unauthorized - Invalid credentials
           content:
@@ -1291,6 +1299,280 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /get2FAStatus:
+    get:
+      summary: Get 2FA status
+      description: |
+        Retrieves the user's 2FA status.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: get2FAStatus
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is2FAEnabled:
+                    type: boolean
+                    description: Whether 2FA is enabled for the user
+              example:
+                is2FAEnabled: true
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaEnrollStart:
+    post:
+      summary: Initialize MFA enrollment
+      description: |
+        Generates a QR code and secret for enrolling a new TOTP factor.
+        Returns the SVG QR code and the URI for authenticator apps.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: mfaEnrollStart
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Enrollment started successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  type:
+                    type: string
+                  totp:
+                    type: object
+                    properties:
+                      qr_code:
+                        type: string
+                      secret:
+                        type: string
+                      uri:
+                        type: string
+              example:
+                id: 34e62840-7ab1-424a-8472-3c7b39523262
+                type: totp
+                totp:
+                  qr_code: <svg>...</svg>
+                  secret: JBSWY3DPEHPK3PXP
+                  uri: otpauth://totp/...
+        "400":
+          description: Enrollment failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaEnrollComplete:
+    post:
+      summary: Finalize MFA enrollment
+      description: |
+        Verifies the code from the authenticator app to finalize enrollment.
+        Sets `is_2fa_enabled` to true for the user.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: mfaEnrollComplete
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - factorId
+                - code
+              properties:
+                factorId:
+                  type: string
+                  description: The ID of the factor returned from enrollMFA
+                code:
+                  type: string
+                  description: The 6-digit TOTP code from the app
+      responses:
+        "200":
+          description: Enrollment finalized successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  type:
+                    type: string
+                  status:
+                    type: string
+                    enum: [verified]
+              example:
+                id: 34e62840-7ab1-424a-8472-3c7b39523262
+                type: totp
+                status: verified
+        "400":
+          description: Verification failed or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaListFactors:
+    get:
+      summary: List MFA factors
+      description: |
+        Lists all enrolled MFA factors for the user.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: mfaListFactors
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Factors listed successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    status:
+                      type: string
+                      enum: [verified, unverified]
+                    factor_type:
+                      type: string
+                      enum: [totp]
+              example:
+                - id: 34e62840-7ab1-424a-8472-3c7b39523262
+                  status: verified
+                  factor_type: totp
+        "400":
+          description: Error fetching factors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaUnenroll:
+    delete:
+      summary: Unenroll MFA factor
+      description: |
+        Removes a specified MFA factor and updates user status.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: mfaUnenroll
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - factorId
+              properties:
+                factorId:
+                  type: string
+      responses:
+        "200":
+          description: Factor unenrolled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+              example:
+                id: 34e62840-7ab1-424a-8472-3c7b39523262
+        "400":
+          description: Error unenrolling factor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mfaVerify:
+    post:
+      summary: Challenge and Verify MFA Factor
+      description: Challenges and verifies an MFA factor in a single step using the Supabase challengeAndVerify API.
+      tags:
+        - Multi-Factor Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                factorId:
+                  type: string
+                  description: The ID of the factor to challenge and verify.
+                code:
+                  type: string
+                  description: The code provided by the user.
+              required:
+                - factorId
+                - code
+      responses:
+        "200":
+          description: Successful challenge and verification
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Factor challenged and verified successfully
+                  id:
+                    type: string
+                  type:
+                    type: string
+                  expires_at:
+                    type: integer
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+
   /addPaymentMethod:
     post:
       summary: Add a new payment method
@@ -1750,11 +2032,14 @@ paths:
                         type: string
                   processingTimeMs:
                     type: integer
+>>>>>>> 944c6cbf9501981720d75323836b0c10a83460ea
 
 tags:
   - name: Authentication
     description: User authentication and account management endpoints
   - name: Settings Management
     description: User profile and settings management endpoints
+  - name: Multi-Factor Authentication
+    description: 2FA enrollment and verification endpoints
   - name: Payment Management
     description: Payment methods and billing history management endpoints
