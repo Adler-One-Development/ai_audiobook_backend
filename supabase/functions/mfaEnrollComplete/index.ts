@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { error: authError } = await getAuthenticatedUser(req, {
+    const { user, error: authError } = await getAuthenticatedUser(req, {
       skipMfaCheck: true,
     });
     if (authError) return authError;
