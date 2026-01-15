@@ -18,6 +18,8 @@ info:
 servers:
   - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1
     description: QA Environment
+  - url: https://oohypifjnozihqzsrrfv.supabase.co/functions/v1
+    description: PROD Environment
 
 # Global security - require apikey for all endpoints
 # BearerAuth is also available and will be sent if provided in authorize dialog
