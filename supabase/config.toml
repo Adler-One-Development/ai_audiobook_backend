@@ -535,26 +535,26 @@ entrypoint = "./functions/mfaEnrollStart/index.ts"
 [functions.mfaEnrollComplete]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/mfaEnrollComplete/index.ts"
+entrypoint = "./functions/mfaEnrollComplete/index.ts"
 
 
 [functions.mfaListFactors]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/mfaListFactors/index.ts"
+entrypoint = "./functions/mfaListFactors/index.ts"
 
 [functions.mfaUnenroll]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/mfaUnenroll/index.ts"
+entrypoint = "./functions/mfaUnenroll/index.ts"
 
 [functions.mfaVerify]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/mfaVerify/index.ts"
+entrypoint = "./functions/mfaVerify/index.ts"
 
 
 [functions.getCreditAllocation]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/getCreditAllocation/index.ts"
+entrypoint = "./functions/getCreditAllocation/index.ts"
