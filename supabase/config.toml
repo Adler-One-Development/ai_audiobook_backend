@@ -462,10 +462,41 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 
-[functions.getAllOrganizationMembers]
+[functions.stripeWebhook]
 enabled = true
 verify_jwt = false
 
+[functions.addPaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.getPaymentMethods]
+enabled = true
+verify_jwt = true
+
+[functions.setDefaultPaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.updatePaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.deletePaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.getBillingHistory]
+enabled = true
+verify_jwt = true
+
+[functions.chargePaymentMethod]
+enabled = true
+verify_jwt = true
+
+[functions.getAllOrganizationMembers]
+enabled = true
+verify_jwt = false
 
 [functions.get2FAStatus]
 enabled = true
@@ -493,7 +524,6 @@ enabled = true
 verify_jwt = false
 
 
-
-
-
-
+[functions.getCreditAllocation]
+enabled = true
+verify_jwt = true

@@ -103,4 +103,65 @@ export async function isAdmin(userId: string): Promise<boolean> {
  *
  *   // Proceed with update...
  * });
+
+/**
+ * Helper to get the authenticated user and their organization.
+ * Used by payment functions to check permissions and get stripe_customer_id.
  */
+export async function getOrganization(req: Request, supabaseClient: any) {
+    // 1. Get User
+    const { user, error: authError } = await getAuthenticatedUser(req);
+    // If authError is present, it's a Response object, but we want to return a string error to the caller for consistency in this helper.
+    // However, if user is null, it's definitely unauthorized.
+    if (!user) {
+        return {
+            user: null,
+            profile: null,
+            organization: null,
+            error: "Unauthorized: Invalid token or user not found",
+        };
+    }
+
+    // 2. Get User Profile (for user_type)
+    const { data: profile, error: profileError } = await supabaseClient
+        .from("users")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+    if (profileError) {
+        return {
+            user,
+            profile: null,
+            organization: null,
+            error: `Failed to fetch profile: ${profileError.message}`,
+        };
+    }
+
+    // 3. Get Organization (where user is owner OR member)
+    const { data: organizations, error: orgError } = await supabaseClient
+        .from("organizations")
+        .select("*")
+        .or(`owner_id.eq.${user.id},member_ids.cs.{${user.id}}`)
+        .limit(1);
+
+    if (orgError) {
+        return {
+            user,
+            profile,
+            organization: null,
+            error: `Failed to fetch organization: ${orgError.message}`,
+        };
+    }
+
+    if (!organizations || organizations.length === 0) {
+        return { user, profile, organization: null, error: null };
+    }
+
+    return {
+        user,
+        profile,
+        organization: organizations[0],
+        error: null,
+    };
+}

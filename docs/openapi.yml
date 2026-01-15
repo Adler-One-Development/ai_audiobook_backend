@@ -1573,6 +1573,467 @@ paths:
         "500":
           description: Internal Server Error
 
+  /addPaymentMethod:
+    post:
+      summary: Add a new payment method
+      description: |
+        Adds a new payment method to the organization's Stripe customer and sets it as default.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: addPaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method_id
+              properties:
+                payment_method_id:
+                  type: string
+                  description: Stripe Payment Method ID (pm_...)
+            example:
+              payment_method_id: pm_1234567890abcdefghijklmn
+      responses:
+        "200":
+          description: Payment method added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Payment method added and set as default
+                  payment_method:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                      card:
+                        type: object
+                        properties:
+                          brand:
+                            type: string
+                          last4:
+                            type: string
+                          exp_month:
+                            type: integer
+                          exp_year:
+                            type: integer
+                      is_default:
+                        type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /getPaymentMethods:
+    post:
+      summary: Get all payment methods
+      description: |
+        Retrieves all payment methods associated with the organization.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: getPaymentMethods
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Payment methods retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Payment methods fetched successfully
+                  payment_methods:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        card:
+                          type: object
+                          properties:
+                            brand:
+                              type: string
+                            last4:
+                              type: string
+                            exp_month:
+                              type: integer
+                            exp_year:
+                              type: integer
+                        is_default:
+                          type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /setDefaultPaymentMethod:
+    post:
+      summary: Set default payment method
+      description: |
+        Sets a specific payment method as the default for the organization.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: setDefaultPaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method_id
+              properties:
+                payment_method_id:
+                  type: string
+                  description: Stripe Payment Method ID to set as default
+            example:
+              payment_method_id: pm_1234567890abcdefghijklmn
+      responses:
+        "200":
+          description: Default payment method updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Default payment method updated successfully
+                  payment_method:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                      card:
+                        type: object
+                        properties:
+                          brand:
+                            type: string
+                          last4:
+                            type: string
+                          exp_month:
+                            type: integer
+                          exp_year:
+                            type: integer
+                      is_default:
+                        type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /updatePaymentMethod:
+    post:
+      summary: Update payment method details
+      description: |
+        Updates details (expiry, name) of an existing payment method.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: updatePaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method_id
+              properties:
+                payment_method_id:
+                  type: string
+                exp_month:
+                  type: integer
+                exp_year:
+                  type: integer
+                name:
+                  type: string
+            example:
+              payment_method_id: pm_1234567890abcdefghijklmn
+              exp_month: 12
+              exp_year: 2026
+      responses:
+        "200":
+          description: Payment method updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Payment method updated successfully
+                  payment_method:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                      card:
+                        type: object
+                        properties:
+                          brand:
+                            type: string
+                          last4:
+                            type: string
+                          exp_month:
+                            type: integer
+                          exp_year:
+                            type: integer
+                      billing_details:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                      is_default:
+                        type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /deletePaymentMethod:
+    post:
+      summary: Delete a payment method
+      description: |
+        Deletes a payment method from the organization.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: deletePaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method_id
+              properties:
+                payment_method_id:
+                  type: string
+            example:
+              payment_method_id: pm_1234567890abcdefghijklmn
+      responses:
+        "200":
+          description: Payment method deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Payment method deleted successfully
+                  processingTimeMs:
+                    type: integer
+
+  /getBillingHistory:
+    post:
+      summary: Get billing history
+      description: |
+        Retrieves billing history (charges) for the organization.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: getBillingHistory
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Billing history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  transactions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        amount:
+                          type: number
+                        currency:
+                          type: string
+                        status:
+                          type: string
+                        description:
+                          type: string
+                        created:
+                          type: string
+                          format: date-time
+                        receipt_url:
+                          type: string
+                        payment_method:
+                          type: object
+                          properties:
+                            brand:
+                              type: string
+                            last4:
+                              type: string
+                        refunded:
+                          type: boolean
+                        amount_refunded:
+                          type: number
+                  has_more:
+                    type: boolean
+                  processingTimeMs:
+                    type: integer
+
+  /getCreditAllocation:
+    get:
+      summary: Get credit allocation
+      description: |
+        Retrieves the authenticated user's credit balances (available, used, total).
+
+        **Requires:** JWT Bearer token.
+      operationId: getCreditAllocation
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Credit allocation retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Credit allocation fetched successfully
+                  allocation:
+                    type: object
+                    properties:
+                      user_id:
+                        type: string
+                        format: uuid
+                      credits_available:
+                        type: integer
+                      credits_used:
+                        type: integer
+                      total_credits_used:
+                        type: integer
+                  processingTimeMs:
+                    type: integer
+
+  /chargePaymentMethod:
+    post:
+      summary: Purchase credits
+      description: |
+        Charges the organization's default payment method to purchase credits.
+        Price is calculated based on `credits_pricing` table.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: chargePaymentMethod
+      tags:
+        - Payment Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - numberOfCredits
+              properties:
+                numberOfCredits:
+                  type: integer
+                  minimum: 1
+                  description: Number of credits to purchase
+            example:
+              numberOfCredits: 100
+      responses:
+        "200":
+          description: Charge successful and credits allocated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Credits purchased successfully
+                  purchase:
+                    type: object
+                    properties:
+                      credits_added:
+                        type: integer
+                      amount_charged:
+                        type: number
+                      currency:
+                        type: string
+                      price_per_credit:
+                        type: number
+                      transaction_id:
+                        type: string
+                  processingTimeMs:
+                    type: integer
+>>>>>>> 944c6cbf9501981720d75323836b0c10a83460ea
+
 tags:
   - name: Authentication
     description: User authentication and account management endpoints
@@ -1580,3 +2041,5 @@ tags:
     description: User profile and settings management endpoints
   - name: Multi-Factor Authentication
     description: 2FA enrollment and verification endpoints
+  - name: Payment Management
+    description: Payment methods and billing history management endpoints

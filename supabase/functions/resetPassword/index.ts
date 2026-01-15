@@ -37,26 +37,45 @@ Deno.serve(async (req) => {
             );
         }
 
-        // Create Supabase client
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+        const supabaseServiceRoleKey = Deno.env.get(
+            "SUPABASE_SERVICE_ROLE_KEY",
+        )!;
 
-        // Create client with the recovery access token
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        // 1. Verify the provided token matches a valid user
+        // We do this by creating a client with the user's token and calling getUser()
+        const userClient = createClient(supabaseUrl, supabaseAnonKey, {
             global: {
                 headers: { Authorization: `Bearer ${access_token}` },
             },
         });
 
-        // Update the password using the authenticated client
-        const { error: updateError } = await supabase.auth.updateUser({
-            password: newPassword,
-        });
+        const { data: { user }, error: userError } = await userClient.auth
+            .getUser();
+
+        if (userError || !user) {
+            console.error("Token verification failed:", userError);
+            return errorResponse(
+                "Invalid or expired access token. Please request a new password reset link.",
+                401,
+            );
+        }
+
+        // 2. Perform the password update using the Service Role (Admin)
+        // This is more robust as it doesn't rely on the temporary session context for the update itself
+        const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+        const { error: updateError } = await adminClient.auth.admin
+            .updateUserById(
+                user.id,
+                { password: newPassword },
+            );
 
         if (updateError) {
             console.error("Password update error:", updateError);
             return errorResponse(
-                "Failed to reset password. The token may be invalid or expired.",
+                "Failed to reset password in system.",
                 400,
             );
         }
@@ -68,7 +87,7 @@ Deno.serve(async (req) => {
         };
 
         return successResponse(response, 200);
-    } catch (error) {
+    } catch (error: any) {
         console.error("ResetPassword error:", error);
         return errorResponse("An error occurred while resetting password", 500);
     }

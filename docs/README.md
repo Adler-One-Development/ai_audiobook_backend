@@ -89,6 +89,18 @@ The API supports two authentication methods:
 | `/deleteUser`                | DELETE | Delete user from organization    | Yes (JWT)     |
 | `/deleteAdmin`               | DELETE | Delete own account completely    | Yes (JWT)     |
 
+### Payment Management Endpoints
+
+| Endpoint                   | Method | Description                                   | Auth Required |
+| -------------------------- | ------ | --------------------------------------------- | ------------- |
+| `/addPaymentMethod`        | POST   | Add payment method and set as default         | Yes (JWT)     |
+| `/getPaymentMethods`       | POST   | Get all payment methods                       | Yes (JWT)     |
+| `/setDefaultPaymentMethod` | POST   | Set default payment method                    | Yes (JWT)     |
+| `/updatePaymentMethod`     | POST   | Update payment method details                 | Yes (JWT)     |
+| `/deletePaymentMethod`     | POST   | Delete payment method                         | Yes (JWT)     |
+| `/getBillingHistory`       | POST   | Get billing history                           | Yes (JWT)     |
+| `/chargePaymentMethod`     | POST   | Purchase credits using default payment method | Yes (JWT)     |
+
 ## 🌐 Environment URLs
 
 ### QA Environment
