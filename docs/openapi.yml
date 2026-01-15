@@ -1030,7 +1030,10 @@ paths:
 
         **Requires:** JWT Bearer token in Authorization header
 
-        **Returns:** Full user details including profile pictures and industry information
+        **Returns:**
+        - Full user details including profile pictures and industry information
+        - `createdBy`: Information about who created each member (id, name, email, profilePicture)
+        - `lastActive`: Timestamp of the member's last login
       operationId: getAllOrganizationMembers
       tags:
         - Settings Management
@@ -1097,6 +1100,32 @@ paths:
                         createdAt:
                           type: string
                           format: date-time
+                        createdBy:
+                          type: object
+                          nullable: true
+                          description: Information about the user who created this member
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            name:
+                              type: string
+                            email:
+                              type: string
+                            profilePicture:
+                              type: object
+                              nullable: true
+                              properties:
+                                id:
+                                  type: string
+                                  format: uuid
+                                url:
+                                  type: string
+                        lastActive:
+                          type: string
+                          format: date-time
+                          nullable: true
+                          description: Timestamp of the user's last login
                   totalMembers:
                     type: integer
               example:
@@ -1118,6 +1147,14 @@ paths:
                       url: https://example.com/pic.jpg
                     isOwner: true
                     createdAt: "2026-01-14T00:00:00Z"
+                    createdBy:
+                      id: e2cad916-38c3-488e-9e11-fb20f0380f16
+                      name: John Doe
+                      email: john@example.com
+                      profilePicture:
+                        id: abc123
+                        url: https://example.com/pic.jpg
+                    lastActive: "2026-01-15T23:14:35Z"
                   - id: 550e8400-e29b-41d4-a716-446655440000
                     fullName: Jane Smith
                     email: jane@example.com
@@ -1129,6 +1166,14 @@ paths:
                     profilePicture: null
                     isOwner: false
                     createdAt: "2026-01-14T00:00:00Z"
+                    createdBy:
+                      id: e2cad916-38c3-488e-9e11-fb20f0380f16
+                      name: John Doe
+                      email: john@example.com
+                      profilePicture:
+                        id: abc123
+                        url: https://example.com/pic.jpg
+                    lastActive: null
                 totalMembers: 2
         "404":
           description: Organization not found

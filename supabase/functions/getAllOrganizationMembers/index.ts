@@ -72,7 +72,12 @@ Deno.serve(async (req) => {
         creator:created_by (
           id,
           full_name,
-          email
+          email,
+          profile_picture_id,
+          profile_pictures (
+            id,
+            url
+          )
         )
       `)
             .eq("organization_id", userData.organization_id);
@@ -130,6 +135,12 @@ Deno.serve(async (req) => {
                     id: member.creator.id,
                     name: member.creator.full_name,
                     email: member.creator.email,
+                    profilePicture: member.creator.profile_pictures
+                        ? {
+                            id: member.creator.profile_pictures.id,
+                            url: member.creator.profile_pictures.url,
+                        }
+                        : null,
                 }
                 : null,
             lastActive: lastSignInMap.get(member.id) || null,
