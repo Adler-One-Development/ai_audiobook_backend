@@ -404,6 +404,7 @@ verify_jwt = false
 [functions.refreshToken]
 enabled = true
 verify_jwt = false
+entrypoint = "./supabase/functions/refreshToken/index.ts"
 
 [functions.forgotPassword]
 enabled = true
@@ -498,9 +499,10 @@ verify_jwt = true
 enabled = true
 verify_jwt = false
 
-[functions.get2fastatus]
+[functions.get2FAStatus]
 enabled = true
 verify_jwt = false
+entrypoint = "./supabase/functions/get2FAStatus/index.ts"
 
 [functions.mfaEnrollStart]
 enabled = true

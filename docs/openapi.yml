@@ -1299,14 +1299,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /get2fastatus:
+  /get2FAStatus:
     get:
       summary: Get 2FA status
       description: |
         Retrieves the user's 2FA status.
 
         **Requires:** JWT Bearer token in Authorization header
-      operationId: get2fastatus
+      operationId: get2FAStatus
       tags:
         - Multi-Factor Authentication
       security:

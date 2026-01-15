@@ -76,13 +76,13 @@ Deno.test("MFA Flow Test", async (t) => {
     console.log("SignUp successful");
   });
 
-  // 2. get2fastatus should be false
+  // 2. get2FAStatus should be false
   await t.step("Get 2FA Status (Expect False)", async () => {
-    const result = await callFunction("get2fastatus", "GET", accessToken);
+    const result = await callFunction("get2FAStatus", "GET", accessToken);
     // Expecting: { is_2fa_enabled: false } inside the response or similar?
     // Based on implementation, it returns `data: { is_2fa_enabled: boolean }` wrapped in successResponse?
     // Let's inspect response.
-    console.log("get2fastatus response:", result);
+    console.log("get2FAStatus response:", result);
     // Implementation: return successResponse(userData); -> { status: "success", message: "...", is_2fa_enabled: false }
     assertEquals(result.is_2fa_enabled, false);
   });
@@ -130,8 +130,8 @@ Deno.test("MFA Flow Test", async (t) => {
   // 5. Check 2FA Status is now TRUE
   await t.step("Get 2FA Status (Expect True)", async () => {
     // Small delay to ensure DB propagation if using replicas (local is instant)
-    const result = await callFunction("get2fastatus", "GET", accessToken);
-    console.log("get2fastatus response:", result);
+    const result = await callFunction("get2FAStatus", "GET", accessToken);
+    console.log("get2FAStatus response:", result);
     assertEquals(result.is_2fa_enabled, true);
   });
 
