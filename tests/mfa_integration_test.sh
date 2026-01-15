@@ -12,7 +12,7 @@ URL="https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1"
 KEY=$SUPABASE_ANON_KEY
 
 # User Credentials
-EMAIL="xqepoy@virgilian.com"
+EMAIL="s6czaq@virgilian.com"
 PASS="SecurePass123!"
 NEW_PASS="NewSecurePass456!"
 
