@@ -400,22 +400,22 @@ verify_jwt = false
 [functions.signUp]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/signUp/index.ts"
+entrypoint = "./functions/signUp/index.ts"
 
 [functions.refreshToken]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/refreshToken/index.ts"
+entrypoint = "./functions/refreshToken/index.ts"
 
 [functions.forgotPassword]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/forgotPassword/index.ts"
+entrypoint = "./functions/forgotPassword/index.ts"
 
 [functions.resetPassword]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/resetPassword/index.ts"
+entrypoint = "./functions/resetPassword/index.ts"
 
 [functions.logout]
 enabled = true
@@ -425,112 +425,112 @@ verify_jwt = true
 [functions.getAllIndustries]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/getAllIndustries/index.ts"
+entrypoint = "./functions/getAllIndustries/index.ts"
 
 [functions.getUserProfile]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/getUserProfile/index.ts"
+entrypoint = "./functions/getUserProfile/index.ts"
 
 [functions.updateUserProfile]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/updateUserProfile/index.ts"
+entrypoint = "./functions/updateUserProfile/index.ts"
 
 [functions.changePassword]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/changePassword/index.ts"
+entrypoint = "./functions/changePassword/index.ts"
 
 [functions.createUser]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/createUser/index.ts"
+entrypoint = "./functions/createUser/index.ts"
 
 [functions.deleteUser]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/deleteUser/index.ts"
+entrypoint = "./functions/deleteUser/index.ts"
 
 [functions.deleteAdmin]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/deleteAdmin/index.ts"
+entrypoint = "./functions/deleteAdmin/index.ts"
 
 [functions.getOrganization]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/getOrganization/index.ts"
+entrypoint = "./functions/getOrganization/index.ts"
 
 [functions.loginWithGoogle]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/loginWithGoogle/index.ts"
+entrypoint = "./functions/loginWithGoogle/index.ts"
 
 [functions.signUpWithGoogle]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/signUpWithGoogle/index.ts"
+entrypoint = "./functions/signUpWithGoogle/index.ts"
 
 [functions.syncGoogleProfilePicture]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/syncGoogleProfilePicture/index.ts"
+entrypoint = "./functions/syncGoogleProfilePicture/index.ts"
 
 [functions.stripeWebhook]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/stripeWebhook/index.ts"
+entrypoint = "./functions/stripeWebhook/index.ts"
 
 [functions.addPaymentMethod]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/addPaymentMethod/index.ts"
+entrypoint = "./functions/addPaymentMethod/index.ts"
 
 [functions.getPaymentMethods]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/getPaymentMethods/index.ts"
+entrypoint = "./functions/getPaymentMethods/index.ts"
 
 [functions.setDefaultPaymentMethod]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/setDefaultPaymentMethod/index.ts"
+entrypoint = "./functions/setDefaultPaymentMethod/index.ts"
 
 [functions.updatePaymentMethod]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/updatePaymentMethod/index.ts"
+entrypoint = "./functions/updatePaymentMethod/index.ts"
 
 [functions.deletePaymentMethod]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/deletePaymentMethod/index.ts"
+entrypoint = "./functions/deletePaymentMethod/index.ts"
 
 [functions.getBillingHistory]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/getBillingHistory/index.ts"
+entrypoint = "./functions/getBillingHistory/index.ts"
 
 [functions.chargePaymentMethod]
 enabled = true
 verify_jwt = true
-entrypoint = "./supabase/functions/chargePaymentMethod/index.ts"
+entrypoint = "./functions/chargePaymentMethod/index.ts"
 
 [functions.getAllOrganizationMembers]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/getAllOrganizationMembers/index.ts"
+entrypoint = "./functions/getAllOrganizationMembers/index.ts"
 
 [functions.get2FAStatus]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/get2FAStatus/index.ts"
+entrypoint = "./functions/get2FAStatus/index.ts"
 
 [functions.mfaEnrollStart]
 enabled = true
 verify_jwt = false
-entrypoint = "./supabase/functions/mfaEnrollStart/index.ts"
+entrypoint = "./functions/mfaEnrollStart/index.ts"
 
 [functions.mfaEnrollComplete]
 enabled = true
