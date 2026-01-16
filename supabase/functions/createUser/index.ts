@@ -143,14 +143,14 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Send password reset email
+        // Send password reset email (acts as account setup email for new users)
         const { error: resetError } = await adminClient.auth
             .resetPasswordForEmail(
                 email,
                 {
                     redirectTo: `${
                         req.headers.get("origin") || "https://yourdomain.com"
-                    }/reset-password`,
+                    }/set-new-password`,
                 },
             );
 
