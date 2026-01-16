@@ -323,6 +323,77 @@ paths:
                 status: error
                 message: Failed to logout
 
+  /confirmPassword:
+    post:
+      summary: Confirm user password
+      description: |
+        Verifies if the provided password matches the authenticated user's current password.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        This endpoint is useful for re-authentication before performing sensitive operations.
+      operationId: confirmPassword
+      tags:
+        - Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+                  description: User's current password to verify
+            example:
+              password: SecurePass123!
+      responses:
+        "200":
+          description: Password confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Password confirmed successfully
+        "400":
+          description: Bad request - Password not provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: password is required
+        "401":
+          description: Unauthorized - Incorrect password or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                incorrectPassword:
+                  value:
+                    status: error
+                    message: Incorrect password
+                invalidToken:
+                  value:
+                    status: error
+                    message: Invalid or expired token
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /refreshToken:
     post:
       summary: Refresh access token

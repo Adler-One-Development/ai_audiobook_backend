@@ -15,26 +15,10 @@ Deno.serve(async (req) => {
     try {
         const authClient = createAuthClient();
 
-        // Get redirect parameters from request
-        const { redirect_to, return_base_url } = await req.json().catch(() => ({
-            redirect_to: null,
-            return_base_url: null,
-        }));
-
-        // The return_base_url is where the user should end up after OAuth completes
-        // We pass it as a query parameter in redirectTo so Supabase can redirect back to it
-        const returnUrl = return_base_url || "http://localhost:3000";
-        const redirectUrl = redirect_to ||
-            `https://hskaqvjruqzmgrwxmxxd.supabase.co/auth/v1/callback?redirect_to=${
-                encodeURIComponent(returnUrl)
-            }`;
-
         // Initiate Google OAuth sign up
+        // Redirect URL is controlled by Supabase project's Site URL setting
         const { data, error } = await authClient.auth.signInWithOAuth({
             provider: "google",
-            options: {
-                redirectTo: redirectUrl,
-            },
         });
 
         if (error) {
