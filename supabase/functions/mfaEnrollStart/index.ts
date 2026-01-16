@@ -26,7 +26,7 @@ serve(async (req) => {
     
     if (existingFactors?.all) {
       const conflictingFactors = existingFactors.all.filter(
-        (f) => f.status === "unverified" && f.friendly_name === ""
+        (f) => f.status === "unverified"
       );
 
       // Unenroll conflicting unverified factors
