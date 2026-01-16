@@ -9,6 +9,7 @@ import {
   successResponse,
 } from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
+import { MfaVerifyResponse } from "../_shared/types.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -59,12 +60,14 @@ serve(async (req) => {
       console.error("Failed to update user 2FA status:", updateError);
     }
 
-    return successResponse({
+    return successResponse<MfaVerifyResponse>({
       status: "success",
       message: "Enrollment finalized successfully",
-      ...verifyData,
+      access_token: (verifyData as any).session?.access_token || "",
+      refresh_token: (verifyData as any).session?.refresh_token || "",
     });
   } catch (error) {
-    return errorResponse(error.message, 400);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return errorResponse(errorMessage, 400);
   }
 });

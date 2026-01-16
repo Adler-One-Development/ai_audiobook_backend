@@ -87,7 +87,14 @@ export interface ForgotPasswordRequest {
 }
 
 // ResetPassword request/response
+
 export interface ResetPasswordRequest {
     access_token: string;
     newPassword: string;
+}
+
+// MFA Verify/Enroll Complete Response
+export interface MfaVerifyResponse extends SuccessResponse {
+    access_token: string;
+    refresh_token: string;
 }

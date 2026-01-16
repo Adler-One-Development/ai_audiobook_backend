@@ -1520,125 +1520,14 @@ paths:
                     example: Enrollment finalized successfully
                   access_token:
                     type: string
-                  token_type:
-                    type: string
-                    example: bearer
-                  expires_in:
-                    type: integer
-                  expires_at:
-                    type: integer
                   refresh_token:
-                    type: string
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        format: uuid
-                      aud:
-                        type: string
-                      role:
-                        type: string
-                      email:
-                        type: string
-                        format: email
-                      email_confirmed_at:
-                        type: string
-                        format: date-time
-                      phone:
-                        type: string
-                      confirmed_at:
-                        type: string
-                        format: date-time
-                      last_sign_in_at:
-                        type: string
-                        format: date-time
-                      app_metadata:
-                        type: object
-                      user_metadata:
-                        type: object
-                      factors:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: string
-                            created_at:
-                              type: string
-                            updated_at:
-                              type: string
-                            status:
-                              type: string
-                            factor_type:
-                              type: string
-                            phone:
-                              type: string
-                            last_challenged_at:
-                              type: string
-                      identities:
-                        type: array
-                        items:
-                          type: object
-                      created_at:
-                        type: string
-                        format: date-time
-                      updated_at:
-                        type: string
-                        format: date-time
-                      is_anonymous:
-                        type: boolean
+
               example:
                 status: success
                 message: Enrollment finalized successfully
-                access_token: eyJhbGciOiJFUzI1NiIsImtpZCI6IjFmYWY5N2IyLTM4NjQtNDQwZi1hNGE1LTQ3MmE2MzI1OTdjMCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2hza2FxdmpydXF6bWdyd3hteHhkLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmYWIyOTJjYS02ZGI5LTQxZDYtYjY2Zi00ZjVlODczYjkxYzIiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzY4NTAwMTk1LCJpYXQiOjE3Njg0OTY1OTUsImVtYWlsIjoiam9obkBleGFtcGxlLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJqb2huQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZmFiMjkyY2EtNmRiOS00MWQ2LWI2NmYtNGY1ZTg3M2I5MWMyIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6MTc2ODQ5NjU5NX0seyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc2ODQ5MzM2MH1dLCJzZXNzaW9uX2lkIjoiMzU1ZGE3ZGUtMGZmMy00YjZlLThmZDQtOWU3YzM5YTkyZGQ5IiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.eVMcgP3_oltGWOka6Veevdf7Wq0o-dpBwjJiWsNoSFrTqRF6GkCV1VPa3Xxlapp02YwTVp2rilGwGDRsSat7xA
-                token_type: bearer
-                expires_in: 3600
-                expires_at: 1768500195
+                access_token: eyJhbGciOiJFUzI1NiIsImt....
                 refresh_token: vicaiivfstbh
-                user:
-                  id: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                  aud: authenticated
-                  role: authenticated
-                  email: john@example.com
-                  email_confirmed_at: "2026-01-14T20:31:26.992805Z"
-                  phone: ""
-                  confirmed_at: "2026-01-14T20:31:26.992805Z"
-                  last_sign_in_at: "2026-01-15T16:53:29.59762Z"
-                  app_metadata:
-                    provider: email
-                    providers:
-                      - email
-                  user_metadata:
-                    email: john@example.com
-                    email_verified: true
-                    phone_verified: false
-                    sub: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                  factors:
-                    - id: dbec4fb5-e270-45ea-a445-91f95f243107
-                      created_at: "2026-01-15T16:35:00.671352Z"
-                      updated_at: "2026-01-15T17:03:15.974916Z"
-                      status: verified
-                      factor_type: totp
-                      phone: ""
-                      last_challenged_at: "2026-01-15T17:03:15.730207Z"
-                  identities:
-                    - identity_id: 083d83b7-c519-4c5f-bcd4-33cae86b38b5
-                      id: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                      user_id: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                      identity_data:
-                        email: john@example.com
-                        email_verified: false
-                        phone_verified: false
-                        sub: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                      provider: email
-                      last_sign_in_at: "2026-01-14T20:31:26.990003Z"
-                      created_at: "2026-01-14T20:31:26.990058Z"
-                      updated_at: "2026-01-14T20:31:26.990058Z"
-                      email: john@example.com
-                  created_at: "2026-01-14T20:31:26.985955Z"
-                  updated_at: "2026-01-15T17:03:15.982763Z"
-                  is_anonymous: false
+
         "400":
           description: Verification failed or invalid input
           content:
@@ -1871,125 +1760,15 @@ paths:
                     example: Factor challenged and verified successfully
                   access_token:
                     type: string
-                  token_type:
-                    type: string
-                    example: bearer
-                  expires_in:
-                    type: integer
-                  expires_at:
-                    type: integer
                   refresh_token:
                     type: string
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        format: uuid
-                      aud:
-                        type: string
-                      role:
-                        type: string
-                      email:
-                        type: string
-                        format: email
-                      email_confirmed_at:
-                        type: string
-                        format: date-time
-                      phone:
-                        type: string
-                      confirmed_at:
-                        type: string
-                        format: date-time
-                      last_sign_in_at:
-                        type: string
-                        format: date-time
-                      app_metadata:
-                        type: object
-                      user_metadata:
-                        type: object
-                      factors:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: string
-                            created_at:
-                              type: string
-                            updated_at:
-                              type: string
-                            status:
-                              type: string
-                            factor_type:
-                              type: string
-                            phone:
-                              type: string
-                            last_challenged_at:
-                              type: string
-                      identities:
-                        type: array
-                        items:
-                          type: object
-                      created_at:
-                        type: string
-                        format: date-time
-                      updated_at:
-                        type: string
-                        format: date-time
-                      is_anonymous:
-                        type: boolean
+
               example:
                 status: success
                 message: Factor challenged and verified successfully
-                access_token: eyJhbGciOiJFUzI1NiIsImtpZCI6IjFmYWY5N2IyLTM4NjQtNDQwZi1hNGE1LTQ3MmE2MzI1OTdjMCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2hza2FxdmpydXF6bWdyd3hteHhkLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmYWIyOTJjYS02ZGI5LTQxZDYtYjY2Zi00ZjVlODczYjkxYzIiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzY4NTAwMzA1LCJpYXQiOjE3Njg0OTY3MDUsImVtYWlsIjoiam9obkBleGFtcGxlLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJqb2huQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZmFiMjkyY2EtNmRiOS00MWQ2LWI2NmYtNGY1ZTg3M2I5MWMyIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6MTc2ODQ5NjcwNX0seyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc2ODQ5MzM2MH1dLCJzZXNzaW9uX2lkIjoiMzU1ZGE3ZGUtMGZmMy00YjZlLThmZDQtOWU3YzM5YTkyZGQ5IiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.5GpIsvu22iQY_UsVVUeuZ6jGXpwP5T77eZX_WDft_lTfPSzn1AWKInAykHqNiYNXxehRf_wfrt-EK-NpRhSl0w
-                token_type: bearer
-                expires_in: 3600
-                expires_at: 1768500305
+                access_token: eyJhbGciOiJFUzI1NiIsImtpZCI6I....
                 refresh_token: g5tgvvkdg26r
-                user:
-                  id: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                  aud: authenticated
-                  role: authenticated
-                  email: john@example.com
-                  email_confirmed_at: "2026-01-14T20:31:26.992805Z"
-                  phone: ""
-                  confirmed_at: "2026-01-14T20:31:26.992805Z"
-                  last_sign_in_at: "2026-01-15T16:53:29.59762Z"
-                  app_metadata:
-                    provider: email
-                    providers:
-                      - email
-                  user_metadata:
-                    email: john@example.com
-                    email_verified: true
-                    phone_verified: false
-                    sub: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                  factors:
-                    - id: dbec4fb5-e270-45ea-a445-91f95f243107
-                      created_at: "2026-01-15T16:35:00.671352Z"
-                      updated_at: "2026-01-15T17:05:04.863916Z"
-                      status: verified
-                      factor_type: totp
-                      phone: ""
-                      last_challenged_at: "2026-01-15T17:05:04.862504Z"
-                  identities:
-                    - identity_id: 083d83b7-c519-4c5f-bcd4-33cae86b38b5
-                      id: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                      user_id: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                      identity_data:
-                        email: john@example.com
-                        email_verified: false
-                        phone_verified: false
-                        sub: fab292ca-6db9-41d6-b66f-4f5e873b91c2
-                      provider: email
-                      last_sign_in_at: "2026-01-14T20:31:26.990003Z"
-                      created_at: "2026-01-14T20:31:26.990058Z"
-                      updated_at: "2026-01-14T20:31:26.990058Z"
-                      email: john@example.com
-                  created_at: "2026-01-14T20:31:26.985955Z"
-                  updated_at: "2026-01-15T17:05:05.130533Z"
-                  is_anonymous: false
+
         "400":
           description: Bad Request
         "401":

@@ -7,6 +7,8 @@ import {
 } from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
 
+import { MfaVerifyResponse } from "../_shared/types.ts";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPreFlight();
@@ -34,12 +36,14 @@ serve(async (req) => {
       throw error;
     }
 
-    return successResponse({
+    return successResponse<MfaVerifyResponse>({
       status: "success",
       message: "Factor challenged and verified successfully",
-      ...data,
+      access_token: (data as any).session?.access_token,
+      refresh_token: (data as any).session?.refresh_token,
     });
   } catch (error) {
-    return errorResponse(error.message, 400);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return errorResponse(errorMessage, 400);
   }
 });
