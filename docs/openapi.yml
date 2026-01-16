@@ -1347,6 +1347,169 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /getCreditsCost:
+    get:
+      summary: Get credits pricing
+      description: |
+        Retrieves the current pricing for credits from the credits_pricing table.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: getCreditsCost
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Credits pricing fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  pricing:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      pricePerCredit:
+                        type: number
+                        format: decimal
+                        description: Price per credit in USD
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+              example:
+                status: success
+                message: Credits pricing fetched successfully
+                pricing:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  pricePerCredit: 0.10
+                  createdAt: "2026-01-15T00:00:00Z"
+                  updatedAt: "2026-01-15T00:00:00Z"
+        "401":
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /changeUserType:
+    post:
+      summary: Change user type/role
+      description: |
+        Changes the userType (role) of a user in the organization.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Authorization Rules:**
+        - Members cannot change anyone's userType
+        - Owners cannot change Admin userTypes
+        - Organization owner cannot change their own userType
+        - Can only change userType for users in the same organization
+      operationId: changeUserType
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - userType
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: ID of the user whose type to change
+                userType:
+                  type: string
+                  enum: [ADMIN, MEMBER, OWNER]
+                  description: New user type/role
+            example:
+              id: 550e8400-e29b-41d4-a716-446655440000
+              userType: ADMIN
+      responses:
+        "200":
+          description: User type changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      userType:
+                        type: string
+                        enum: [ADMIN, MEMBER, OWNER]
+              example:
+                status: success
+                message: User type updated successfully
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  userType: ADMIN
+        "400":
+          description: Bad request - Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                memberCannotChange:
+                  value:
+                    status: error
+                    message: Members cannot change user types
+                ownerCannotChangeAdmin:
+                  value:
+                    status: error
+                    message: Owners cannot change Admin user types
+                cannotChangeOwnType:
+                  value:
+                    status: error
+                    message: Organization owner cannot change their own userType
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /deleteAdmin:
     delete:
       summary: Delete own account
