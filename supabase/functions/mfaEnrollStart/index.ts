@@ -20,6 +20,24 @@ serve(async (req) => {
 
     const supabase = createClientFromRequest(req);
 
+    // Cleanup: Remove any existing unverified factors with default friendly name
+    // This prevents "factor already exists" errors on repeated enrollment attempts
+    const { data: existingFactors } = await supabase.auth.mfa.listFactors();
+    
+    if (existingFactors?.all) {
+      const conflictingFactors = existingFactors.all.filter(
+        (f) => f.status === "unverified" && f.friendly_name === ""
+      );
+
+      // Unenroll conflicting unverified factors
+      await Promise.all(
+        conflictingFactors.map((f) =>
+          supabase.auth.mfa.unenroll({ factorId: f.id })
+        )
+      );
+    }
+
+    // Create new enrollment
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: "totp",
       issuer: "AI Audiobook",
@@ -35,6 +53,7 @@ serve(async (req) => {
       ...data,
     });
   } catch (error) {
-    return errorResponse(error.message, 400);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return errorResponse(errorMessage, 400);
   }
 });
