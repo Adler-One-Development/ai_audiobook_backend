@@ -162,7 +162,8 @@ echo -n "8. Listing Factors... "
 LIST_RES=$(curl -s -X GET "$URL/mfaListFactors" -H "Authorization: Bearer $TOKEN_TEMP")
 
 # Find the first verified factor
-FACTOR_ID_VERIFIED=$(echo "$LIST_RES" | deno eval "const data = await new Response(Deno.stdin.readable).json(); const f = data.factors?.find(f => f.status === 'verified'); console.log(f ? f.id : '');" 2>/dev/null)
+# Needs to access data.factors.all to find the factor
+FACTOR_ID_VERIFIED=$(echo "$LIST_RES" | deno eval "const data = await new Response(Deno.stdin.readable).json(); const f = data.factors?.all?.find(f => f.status === 'verified'); console.log(f ? f.id : '');" 2>/dev/null)
 
 if [ -z "$FACTOR_ID_VERIFIED" ]; then
     echo -e "${RED}FAILED${NC}"
@@ -209,10 +210,40 @@ fi
 # Update password for subsequent tests
 PASS="$NEW_PASS"
 
+# Login again to get fresh token (Change Password invalidates sessions)
+echo -n "   Logging in with new password... "
+LOGIN_NEW=$(curl -s -X POST "$URL/login" \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")
+TOKEN_NEW=$(json_val "$LOGIN_NEW" "token")
+
+if [ -z "$TOKEN_NEW" ] || [ "$TOKEN_NEW" == "undefined" ]; then
+    echo -e "${RED}FAILED${NC} (Could not login with new password)"
+    exit 1
+fi
+echo -e "${GREEN}OK${NC}"
+
+# Verify MFA again to get AAL2 (Unenroll likely requires AAL2)
+echo -n "   Verifying MFA again for AAL2... "
+CODE_VERIFY_2=$(gen_totp "$SECRET")
+VERIFY_RES_2=$(curl -s -X POST "$URL/mfaVerify" \
+  -H "Authorization: Bearer $TOKEN_NEW" \
+  -H "Content-Type: application/json" \
+  -d "{\"factorId\":\"$FACTOR_ID_VERIFIED\",\"code\":\"$CODE_VERIFY_2\"}")
+
+TOKEN_NEW_AAL2=$(json_val "$VERIFY_RES_2" "access_token")
+
+if [ -z "$TOKEN_NEW_AAL2" ] || [ "$TOKEN_NEW_AAL2" == "undefined" ]; then
+    echo -e "${RED}FAILED${NC} (Could not get AAL2 token)"
+    exit 1
+fi
+echo -e "${GREEN}OK${NC}"
+
 # 11. Unenroll from MFA
 echo -n "11. Unenrolling from MFA... "
 UNENROLL_RES=$(curl -s -w "%{http_code}" -X POST "$URL/mfaUnenroll" \
-  -H "Authorization: Bearer $TOKEN_AAL2" \
+  -H "Authorization: Bearer $TOKEN_NEW_AAL2" \
   -H "Content-Type: application/json" \
   -d "{\"factorId\":\"$FACTOR_ID_VERIFIED\"}")
 

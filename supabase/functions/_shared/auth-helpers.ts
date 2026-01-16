@@ -67,23 +67,28 @@ export async function getAuthenticatedUser(
 
             const isMfaEnabled = userData?.is_2fa_enabled === true;
 
-            // Check current session AAL
-            const { data: aalData, error: aalError } = await supabase.auth.mfa
-                .getAuthenticatorAssuranceLevel();
-
-            if (aalError) {
-                console.error("MFA Validation Error:", aalError);
-                return {
-                    user: null,
-                    error: errorResponse(
-                        "Unauthorized - Failed to validate MFA status",
-                        401,
-                    ),
-                };
+            // Manually decode JWT to check AAL
+            let currentAal = "aal1";
+            try {
+                const token = authHeader.replace("Bearer ", "");
+                const base64Url = token.split(".")[1];
+                const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+                const jsonPayload = decodeURIComponent(
+                    atob(base64)
+                        .split("")
+                        .map((c) =>
+                            "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+                        )
+                        .join(""),
+                );
+                const payload = JSON.parse(jsonPayload);
+                currentAal = payload.aal || "aal1";
+            } catch (e) {
+                console.warn("Failed to decode JWT for AAL check", e);
             }
 
             // If MFA is enabled for the user, they MUST be at aal2
-            if (isMfaEnabled && aalData.currentLevel !== "aal2") {
+            if (isMfaEnabled && currentAal !== "aal2") {
                 return {
                     user: null,
                     error: errorResponse(
