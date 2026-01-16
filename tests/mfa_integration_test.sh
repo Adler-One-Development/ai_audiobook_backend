@@ -11,8 +11,9 @@ fi
 URL="https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1"
 KEY=$SUPABASE_ANON_KEY
 
-# User Credentials
-EMAIL="s6czaq@virgilian.com"
+# Generate dynamic test user credentials
+TIMESTAMP=$(date +%s)
+EMAIL="test_mfa_${TIMESTAMP}@example.com"
 PASS="SecurePass123!"
 NEW_PASS="NewSecurePass456!"
 
@@ -42,23 +43,24 @@ function gen_totp {
 echo "---------------------------------------------------"
 echo "Starting MFA Integration Test"
 echo "URL: $URL"
-echo "User: $EMAIL"
+echo "Test User: $EMAIL"
 echo "---------------------------------------------------"
 
-# 0. SignUp (Ensure user exists)
-echo -n "0. Signing Up (if needed)... "
+# 0. SignUp (Always create fresh test user)
+echo -n "0. Creating test user... "
 SIGNUP_RES=$(curl -s -X POST "$URL/signUp" \
   -H "Authorization: Bearer $KEY" \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\",\"firstName\":\"Test\",\"lastName\":\"User\"}")
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\",\"fullName\":\"MFA Test User\"}")
 
-SIGNUP_TOKEN=$(json_val "$SIGNUP_RES" "session.access_token")
+SIGNUP_STATUS=$(json_val "$SIGNUP_RES" "status")
 
-if [ ! -z "$SIGNUP_TOKEN" ] && [ "$SIGNUP_TOKEN" != "undefined" ]; then
-    echo -e "${GREEN}Created & Logged In${NC}"
-else
-    echo -e "${GREEN}User likely exists, proceeding to Login${NC}"
+if [ "$SIGNUP_STATUS" != "success" ]; then
+    echo -e "${RED}FAILED${NC}"
+    echo "Response: $SIGNUP_RES"
+    exit 1
 fi
+echo -e "${GREEN}OK${NC}"
 
 # 1. Login
 echo -n "1. Logging in... "
@@ -198,13 +200,72 @@ BODY_2=${CHANGE_RES_2::-3}
 
 if [ "$HTTP_CODE_2" == "200" ]; then
     echo -e "${GREEN}SUCCESS${NC}"
-    echo "Password changed successfully."
 else
     echo -e "${RED}FAILED${NC}"
     echo "Failed with code $HTTP_CODE_2. Response: $BODY_2"
     exit 1
 fi
 
+# Update password for subsequent tests
+PASS="$NEW_PASS"
+
+# 11. Unenroll from MFA
+echo -n "11. Unenrolling from MFA... "
+UNENROLL_RES=$(curl -s -w "%{http_code}" -X POST "$URL/mfaUnenroll" \
+  -H "Authorization: Bearer $TOKEN_AAL2" \
+  -H "Content-Type: application/json" \
+  -d "{\"factorId\":\"$FACTOR_ID_VERIFIED\"}")
+
+UNENROLL_HTTP_CODE=${UNENROLL_RES: -3}
+UNENROLL_BODY=${UNENROLL_RES::-3}
+
+if [ "$UNENROLL_HTTP_CODE" == "200" ]; then
+    echo -e "${GREEN}OK${NC}"
+else
+    echo -e "${RED}FAILED${NC}"
+    echo "Failed with code $UNENROLL_HTTP_CODE. Response: $UNENROLL_BODY"
+    exit 1
+fi
+
+# 12. Logout
+echo -n "12. Logging out... "
+curl -s -X POST "$URL/logout" -H "Authorization: Bearer $TOKEN_AAL2" > /dev/null
+echo -e "${GREEN}OK${NC}"
+
+# 13. Login and test changePassword (should work without MFA)
+echo -n "13. Logging in after MFA unenroll... "
+LOGIN_FINAL=$(curl -s -X POST "$URL/login" \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")
+
+TOKEN_FINAL=$(json_val "$LOGIN_FINAL" "token")
+
+if [ -z "$TOKEN_FINAL" ] || [ "$TOKEN_FINAL" == "undefined" ]; then
+    echo -e "${RED}FAILED${NC}"
+    echo "Response: $LOGIN_FINAL"
+    exit 1
+fi
+echo -e "${GREEN}OK${NC}"
+
+echo -n "    Testing ChangePassword with AAL1 (Should Succeed Now)... "
+CHANGE_RES_FINAL=$(curl -s -w "%{http_code}" -X POST "$URL/changePassword" \
+  -H "Authorization: Bearer $TOKEN_FINAL" \
+  -H "Content-Type: application/json" \
+  -d "{\"old_password\":\"$PASS\",\"new_password\":\"SecurePass789!\"}")
+
+HTTP_CODE_FINAL=${CHANGE_RES_FINAL: -3}
+BODY_FINAL=${CHANGE_RES_FINAL::-3}
+
+if [ "$HTTP_CODE_FINAL" == "200" ]; then
+    echo -e "${GREEN}SUCCESS${NC}"
+    echo "    Password changed successfully without MFA (as expected after unenroll)"
+else
+    echo -e "${RED}FAILED${NC}"
+    echo "    Failed with code $HTTP_CODE_FINAL. Response: $BODY_FINAL"
+    exit 1
+fi
+
 echo "---------------------------------------------------"
-echo -e "${GREEN}TEST PASSED${NC}"
+echo -e "${GREEN}ALL TESTS PASSED${NC}"
 echo "---------------------------------------------------"
