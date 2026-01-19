@@ -552,3 +552,13 @@ entrypoint = "./functions/mfaVerify/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/getCreditAllocation/index.ts"
+
+[functions.getOrganizationCopyright]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getOrganizationCopyright/index.ts"
+
+[functions.setOrganizationCopyright]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/setOrganizationCopyright/index.ts"
