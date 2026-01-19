@@ -107,3 +107,7 @@ export interface CopyrightsSetResponse extends SuccessResponse {
         updated_at: string | null;
     };
 }
+
+export interface ChangeEmailRequest {
+    email: string;
+}
