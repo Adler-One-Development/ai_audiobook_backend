@@ -98,12 +98,14 @@ Deno.serve(async (req) => {
             console.error("Failed to fetch auth data:", authDataError);
         }
 
-        // Create a map of user_id -> last_sign_in_at
+        // Create maps for user_id -> last_sign_in_at and user_id -> created_at
         const lastSignInMap = new Map();
+        const createdAtMap = new Map();
         if (authUsers?.users) {
             authUsers.users.forEach((authUser: any) => {
                 if (memberIds.includes(authUser.id)) {
                     lastSignInMap.set(authUser.id, authUser.last_sign_in_at);
+                    createdAtMap.set(authUser.id, authUser.created_at);
                 }
             });
         }
@@ -165,6 +167,7 @@ Deno.serve(async (req) => {
                     }
                     : null,
                 lastActive: lastActive,
+                addedOn: createdAtMap.get(member.id) || null,
                 status: status,
             };
         });
