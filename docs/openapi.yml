@@ -394,6 +394,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+
+  /deactivateAccount:
+    post:
+      summary: Deactivate account or organization
+      description: |
+        Deactivates the user's account or entire organization.
+
+        **If organization owner:** Deactivates entire organization and all members.
+        **If non-owner:** Deactivates only the caller's account.
+      operationId: deactivateAccount
+      tags:
+        - Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Account/Organization deactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /refreshToken:
     post:
       summary: Refresh access token
@@ -1282,6 +1310,15 @@ paths:
                           format: date-time
                           nullable: true
                           description: Timestamp of the user's last login
+                        status:
+                          type: string
+                          enum: [Active, Invited, Expired, Inactive]
+                          description: |
+                            User account status:
+                            - Invited: User has not logged in yet and invite link is valid (< 1 hour old)
+                            - Active: User has logged in at least once
+                            - Expired: User has not logged in and invite link has expired (> 1 hour old)
+                            - Inactive: User account has been manually deactivated by an admin
                   totalMembers:
                     type: integer
               example:
@@ -1311,6 +1348,7 @@ paths:
                         id: abc123
                         url: https://example.com/pic.jpg
                     lastActive: "2026-01-15T23:14:35Z"
+                    status: Active
                   - id: 550e8400-e29b-41d4-a716-446655440000
                     fullName: Jane Smith
                     email: jane@example.com
@@ -1330,6 +1368,7 @@ paths:
                         id: abc123
                         url: https://example.com/pic.jpg
                     lastActive: null
+                    status: Invited
                 totalMembers: 2
         "404":
           description: Organization not found
@@ -1521,6 +1560,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+
+  /markUserAsInactive:
+    post:
+      summary: Mark user as inactive
+      description: Marks a user inactive, preventing login.
+      operationId: markUserAsInactive
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: User marked as inactive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /getCreditsCost:
     get:
       summary: Get credits pricing
