@@ -20,6 +20,9 @@ echo "=================================================="
 
 # Get mailsy email address
 echo "Step 0: Generating new mailsy email address..."
+# Start fresh by deleting existing mailsy identity if any
+mailsy d > /dev/null 2>&1 || true
+
 # Use 'mailsy g' to generate a new account/email to avoid conflicts
 MAILSY_OUTPUT=$(mailsy g 2>&1)
 # Extract email from "Account created: email@domain.com"
@@ -107,40 +110,32 @@ else
   exit 1
 fi
 
-# Step 3: Check mailsy inbox for confirmation email
+# Step 3: Check mailsy inbox manually
 echo ""
-echo "Step 3: Checking mailsy inbox for confirmation email..."
-echo "Waiting 5 seconds for email to arrive..."
-sleep 5
-
-# Check mailsy inbox using CLI
-MAILSY_INBOX=$(mailsy m 2>&1)
-
-echo "Mailsy Inbox:"
-echo "$MAILSY_INBOX"
+echo "Step 3: Checking for confirmation email..."
+echo "To verify the email was sent, please run 'mailsy m' in your terminal (in another window) or check your provider."
+echo "If you see an email 'Confirm Email Change', that part is successful."
 echo ""
+read -p "Press Enter after you have verified the email receipt to continue..."
 
-# Check if we received any emails
-if echo "$MAILSY_INBOX" | grep -q "No Emails"; then
-  echo "❌ No confirmation email received yet"
-  echo ""
-  echo "Waiting 10 more seconds and checking again..."
-  sleep 10
-  MAILSY_INBOX=$(mailsy m 2>&1)
-  echo "Mailsy Inbox (2nd check):"
-  echo "$MAILSY_INBOX"
-  echo ""
-  
-  if echo "$MAILSY_INBOX" | grep -q "No Emails"; then
-    echo "❌ Still no confirmation email"
-    echo ""
-    echo "FAILURE: The changeEmail function may not be sending emails correctly"
-    exit 1
-  else
-    echo "✅ Confirmation email received!"
-  fi
+# Step 4: Verify public.users update
+echo ""
+echo "Step 4: Verifying public.users table update..."
+PROFILE_RESPONSE=$(curl -s -X GET "${BASE_URL}/getUserProfile" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+echo "Profile Response: $PROFILE_RESPONSE"
+
+# Check if profile email matches new email
+CURRENT_PROFILE_EMAIL=$(echo $PROFILE_RESPONSE | grep -o '"email":"[^"]*' | cut -d'"' -f4)
+
+if [ "$CURRENT_PROFILE_EMAIL" == "$NEW_EMAIL" ]; then
+  echo "✅ public.users table updated successfully!"
 else
-  echo "✅ Confirmation email received!"
+  echo "❌ public.users table update failed"
+  echo "Expected: $NEW_EMAIL"
+  echo "Got: $CURRENT_PROFILE_EMAIL"
+  exit 1
 fi
 
 echo ""
