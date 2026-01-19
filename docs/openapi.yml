@@ -657,6 +657,91 @@ paths:
                     status: error
                     message: Failed to reset password. The reset link may have expired.
 
+  /setNewPassword:
+    post:
+      summary: Set new password for newly created user
+      description: |
+        Sets password and full name for a newly created user using the access token from the account setup email.
+
+        This endpoint is used by new users who receive an invitation email from `/createUser`.
+        They use the access token from the email to set their password and provide their full name.
+
+        **Note:** The `access_token` in the request body comes from the reset password email link sent to new users.
+
+        **Password Requirements**:
+        - Minimum 8 characters
+        - At least one uppercase letter (A-Z)
+        - At least one lowercase letter (a-z)
+        - At least one number (0-9)
+        - At least one special character (!@#$%^&*)
+      operationId: setNewPassword
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - access_token
+                - full_name
+                - newPassword
+              properties:
+                access_token:
+                  type: string
+                  description: Access token from account setup/password reset email
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                full_name:
+                  type: string
+                  description: Full name of the user
+                  example: John Doe
+                newPassword:
+                  type: string
+                  format: password
+                  description: New password for the account
+                  example: NewSecurePass123!
+            example:
+              access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+              full_name: John Doe
+              newPassword: NewSecurePass123!
+      responses:
+        "200":
+          description: Password and profile name set successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Password and profile name have been set successfully. You can now log in.
+        "400":
+          description: Bad request - Invalid token or weak password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                weakPassword:
+                  value:
+                    status: error
+                    message: Password does not meet requirements
+                    errors:
+                      - Password must contain at least one special character (!@#$%^&* etc.)
+                invalidToken:
+                  value:
+                    status: error
+                    message: Failed to set password in system.
+        "401":
+          description: Unauthorized - Invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Invalid or expired access token. Please request a new password reset link.
+
   /getAllIndustries:
     get:
       summary: Get all industries
@@ -1255,16 +1340,18 @@ paths:
 
   /createUser:
     post:
-      summary: Create user in organization
+      summary: Create users in organization
       description: |
-        Creates a new user and adds them to the requesting user's organization.
+        Creates one or more new users and adds them to the requesting user's organization.
 
         **Requires:** JWT Bearer token in Authorization header
 
         **Authorization Rules:**
         - Only ADMIN and OWNER can create users
-        - New user is added to the same organization as the creating user
-        - Password reset email is sent to the new user to set their password
+        - New users are added to the same organization as the creating user
+        - Password reset email is sent to each new user to set their password and full name
+
+        **Note:** Users will set their full name when they first set their password via the `/setNewPassword` endpoint.
       operationId: createUser
       tags:
         - Settings Management
@@ -1278,28 +1365,28 @@ paths:
             schema:
               type: object
               required:
-                - email
-                - full_name
+                - emails
                 - role
               properties:
-                email:
-                  type: string
-                  format: email
-                  description: Email address for the new user
-                full_name:
-                  type: string
-                  description: Full name of the new user
+                emails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: Array of email addresses for the new users
+                  minItems: 1
                 role:
                   type: string
                   enum: [ADMIN, OWNER, MEMBER]
-                  description: Role for the new user
+                  description: Role for all new users
             example:
-              email: newuser@example.com
-              full_name: John Doe
+              emails:
+                - newuser@example.com
+                - newuser2@example.com
               role: MEMBER
       responses:
         "201":
-          description: User created successfully and password reset email sent
+          description: Users created successfully
           content:
             application/json:
               schema:
@@ -1310,27 +1397,43 @@ paths:
                     enum: [success]
                   message:
                     type: string
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        format: uuid
-                      email:
-                        type: string
-                      userType:
-                        type: string
-                      organizationId:
-                        type: string
-                        format: uuid
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        email:
+                          type: string
+                        userType:
+                          type: string
+                        organizationId:
+                          type: string
+                          format: uuid
+                  failed:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        email:
+                          type: string
+                        reason:
+                          type: string
+                    description: List of failed user creations (only present if there are failures)
               example:
                 status: success
-                message: User created successfully. Password reset email sent.
-                user:
-                  id: 550e8400-e29b-41d4-a716-446655440000
-                  email: newuser@example.com
-                  userType: MEMBER
-                  organizationId: 660e8400-e29b-41d4-a716-446655440001
+                message: "2 user(s) created successfully. 0 failed."
+                users:
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    email: newuser@example.com
+                    userType: MEMBER
+                    organizationId: 660e8400-e29b-41d4-a716-446655440001
+                  - id: 550e8400-e29b-41d4-a716-446655440002
+                    email: newuser2@example.com
+                    userType: MEMBER
+                    organizationId: 660e8400-e29b-41d4-a716-446655440001
         "400":
           description: Bad request - Invalid input
           content:

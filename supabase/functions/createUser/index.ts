@@ -6,11 +6,9 @@ import {
 } from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
 import { createAdminClient } from "../_shared/supabase-client.ts";
-import { validatePassword } from "../_shared/password-validator.ts";
 
 interface CreateUserRequest {
-    email: string;
-    full_name: string;
+    emails: string[];
     role: "ADMIN" | "OWNER" | "MEMBER";
 }
 
@@ -26,14 +24,18 @@ Deno.serve(async (req) => {
         if (authError) return authError;
 
         // Parse request body
-        const { email, full_name, role }: CreateUserRequest = await req.json();
+        const { emails, role }: CreateUserRequest = await req.json();
 
         // Validate input
-        if (!email || !full_name || !role) {
+        if (!emails || !Array.isArray(emails) || emails.length === 0) {
             return errorResponse(
-                "Email, full_name, and role are required",
+                "emails must be a non-empty array",
                 400,
             );
+        }
+
+        if (!role) {
+            return errorResponse("role is required", 400);
         }
 
         if (!["ADMIN", "OWNER", "MEMBER"].includes(role)) {
@@ -83,92 +85,127 @@ Deno.serve(async (req) => {
             return errorResponse("Only ADMIN and OWNER can create users", 403);
         }
 
-        // Generate a secure random password (user won't see this)
-        const securePassword = `${crypto.randomUUID()}${crypto.randomUUID()}`;
+        // Create users for each email
+        const createdUsers = [];
+        const failedUsers = [];
 
-        // Create user in Supabase Auth
-        const { data: authData, error: authCreateError } = await adminClient
-            .auth.admin
-            .createUser({
-                email,
-                password: securePassword,
-                email_confirm: true, // Auto-confirm email
-            });
+        for (const email of emails) {
+            try {
+                // Generate a secure random password (user won't see this)
+                const securePassword =
+                    `${crypto.randomUUID()}${crypto.randomUUID()}`;
 
-        if (authCreateError) {
-            console.error("Auth user creation error:", authCreateError);
-            return errorResponse(authCreateError.message, 400);
-        }
+                // Create user in Supabase Auth
+                const { data: authData, error: authCreateError } =
+                    await adminClient.auth.admin
+                        .createUser({
+                            email,
+                            password: securePassword,
+                            email_confirm: true, // Auto-confirm email
+                        });
 
-        if (!authData.user) {
-            return errorResponse("Failed to create user", 500);
-        }
+                if (authCreateError || !authData.user) {
+                    console.error(
+                        `Auth user creation error for ${email}:`,
+                        authCreateError,
+                    );
+                    failedUsers.push({
+                        email,
+                        reason: authCreateError?.message ||
+                            "Failed to create auth user",
+                    });
+                    continue;
+                }
 
-        // Insert user record in users table
-        const { data: userData, error: userCreateError } = await adminClient
-            .from("users")
-            .insert({
-                id: authData.user.id,
-                full_name: full_name,
-                email: email,
-                user_type: role,
-                organization_id: requestingUser.organization_id,
-                created_by: user!.id, // Track who created this user
-            })
-            .select("id, email, user_type, organization_id")
-            .single();
+                // Insert user record in users table with empty full_name
+                const { data: userData, error: userCreateError } =
+                    await adminClient
+                        .from("users")
+                        .insert({
+                            id: authData.user.id,
+                            full_name: "", // User will set this when they set their password
+                            email: email,
+                            user_type: role,
+                            organization_id: requestingUser.organization_id,
+                            created_by: user!.id, // Track who created this user
+                        })
+                        .select("id, email, user_type, organization_id")
+                        .single();
 
-        if (userCreateError || !userData) {
-            console.error("User creation error:", userCreateError);
-            // Cleanup: delete auth user if users table insert fails
-            await adminClient.auth.admin.deleteUser(authData.user.id);
-            return errorResponse("Failed to create user profile", 500);
-        }
+                if (userCreateError || !userData) {
+                    console.error(
+                        `User creation error for ${email}:`,
+                        userCreateError,
+                    );
+                    // Cleanup: delete auth user if users table insert fails
+                    await adminClient.auth.admin.deleteUser(authData.user.id);
+                    failedUsers.push({
+                        email,
+                        reason: "Failed to create user profile",
+                    });
+                    continue;
+                }
 
-        // Add user to organization's member_ids if not OWNER
-        if (role !== "OWNER") {
-            const { error: updateOrgError } = await adminClient.rpc(
-                "add_organization_member",
-                {
-                    org_id: requestingUser.organization_id,
-                    user_id: authData.user.id,
-                },
-            );
+                // Add user to organization's member_ids if not OWNER
+                if (role !== "OWNER") {
+                    const { error: updateOrgError } = await adminClient.rpc(
+                        "add_organization_member",
+                        {
+                            org_id: requestingUser.organization_id,
+                            user_id: authData.user.id,
+                        },
+                    );
 
-            if (updateOrgError) {
-                console.error(
-                    "Failed to add user to organization:",
-                    updateOrgError,
-                );
+                    if (updateOrgError) {
+                        console.error(
+                            `Failed to add ${email} to organization:`,
+                            updateOrgError,
+                        );
+                    }
+                }
+
+                // Send password reset email (acts as account setup email for new users)
+                const { error: resetError } = await adminClient.auth
+                    .resetPasswordForEmail(
+                        email,
+                        {
+                            redirectTo: `${
+                                req.headers.get("origin") ||
+                                "https://yourdomain.com"
+                            }/set-new-password`,
+                        },
+                    );
+
+                if (resetError) {
+                    console.error(
+                        `Failed to send password reset email to ${email}:`,
+                        resetError,
+                    );
+                    // Don't fail the user creation, just log the error
+                }
+
+                createdUsers.push({
+                    id: userData.id,
+                    email: userData.email,
+                    userType: userData.user_type,
+                    organizationId: userData.organization_id,
+                });
+            } catch (err) {
+                console.error(`Error creating user ${email}:`, err);
+                failedUsers.push({
+                    email,
+                    reason: "Unexpected error occurred",
+                });
             }
-        }
-
-        // Send password reset email (acts as account setup email for new users)
-        const { error: resetError } = await adminClient.auth
-            .resetPasswordForEmail(
-                email,
-                {
-                    redirectTo: `${
-                        req.headers.get("origin") || "https://yourdomain.com"
-                    }/set-new-password`,
-                },
-            );
-
-        if (resetError) {
-            console.error("Failed to send password reset email:", resetError);
-            // Don't fail the user creation, just log the error
         }
 
         // Create response
         const response = {
             status: "success" as const,
-            message: "User created successfully. Password reset email sent.",
-            user: {
-                id: userData.id,
-                email: userData.email,
-                userType: userData.user_type,
-                organizationId: userData.organization_id,
-            },
+            message:
+                `${createdUsers.length} user(s) created successfully. ${failedUsers.length} failed.`,
+            users: createdUsers,
+            failed: failedUsers.length > 0 ? failedUsers : undefined,
         };
 
         return successResponse(response, 201);
