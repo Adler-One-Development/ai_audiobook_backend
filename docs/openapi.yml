@@ -1568,6 +1568,50 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
 
+
+  /markUserAsActive:
+    post:
+      summary: Mark user as active
+      description: |
+        Marks an inactive user as active, allowing them to log in again.
+
+        **Authorization Rules:**
+        - Only ADMIN and OWNER can mark users as active
+        - OWNER cannot mark ADMIN users as active
+        - MEMBER cannot mark anyone as active
+        - Can only mark users within the same organization
+      operationId: markUserAsActive
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+            example:
+              userId: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        "200":
+          description: User marked as active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /markUserAsInactive:
     post:
       summary: Mark user as inactive

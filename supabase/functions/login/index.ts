@@ -65,25 +65,91 @@ Deno.serve(async (req) => {
             return errorResponse("User data not found", 404);
         }
 
-        // Check if user is active
-        if (userData.is_active === false) {
-            return errorResponse(
-                "Your account has been deactivated. Please contact your organization administrator.",
-                403,
-            );
-        }
-
-        // Check if organization is active
+        // Get organization details to check if user is owner
+        let isOrgOwner = false;
         if (userData.organization_id) {
             const { data: orgData, error: orgError } = await adminClient
                 .from("organizations")
-                .select("is_active")
+                .select("owner_id, is_active")
                 .eq("id", userData.organization_id)
                 .single();
 
-            if (!orgError && orgData && orgData.is_active === false) {
+            if (!orgError && orgData) {
+                isOrgOwner = authData.user.id === orgData.owner_id;
+
+                // Auto-reactivate organization owner and their org if deactivated
+                if (isOrgOwner) {
+                    if (
+                        userData.is_active === false ||
+                        orgData.is_active === false
+                    ) {
+                        console.log(
+                            "Auto-reactivating organization owner and organization",
+                        );
+
+                        // Reactivate the organization
+                        await adminClient
+                            .from("organizations")
+                            .update({ is_active: true })
+                            .eq("id", userData.organization_id);
+
+                        // Reactivate all users in the organization
+                        await adminClient
+                            .from("users")
+                            .update({ is_active: true })
+                            .eq("organization_id", userData.organization_id);
+
+                        // Refresh userData to get updated is_active status
+                        const { data: refreshedData } = await adminClient
+                            .from("users")
+                            .select(
+                                `
+                id,
+                full_name,
+                email,
+                phone,
+                publisher_name,
+                user_type,
+                role,
+                industry_id,
+                industries (id, industry_name),
+                profile_picture_id,
+                profile_pictures(id, url),
+                is_2fa_enabled,
+                is_active,
+                organization_id
+              `,
+                            )
+                            .eq("id", authData.user.id)
+                            .single();
+
+                        if (refreshedData) {
+                            userData = refreshedData;
+                        }
+                    }
+                } else {
+                    // Non-owner: Check if user is active
+                    if (userData.is_active === false) {
+                        return errorResponse(
+                            "Your account has been deactivated. Please contact your organization administrator.",
+                            403,
+                        );
+                    }
+
+                    // Non-owner: Check if organization is active
+                    if (orgData.is_active === false) {
+                        return errorResponse(
+                            "Your organization has been deactivated. All members cannot log in.",
+                            403,
+                        );
+                    }
+                }
+            }
+        } else {
+            // No organization: just check if user is active
+            if (userData.is_active === false) {
                 return errorResponse(
-                    "Your organization has been deactivated. All members cannot log in.",
+                    "Your account has been deactivated.",
                     403,
                 );
             }
