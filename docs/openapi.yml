@@ -394,6 +394,61 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /changeEmail:
+    post:
+      summary: Change user email
+      description: |
+        Initiates an email change process for the authenticated user.
+
+        **Effects:**
+        - Sends a confirmation email to the *new* email address.
+        - The user must click the link in the new email to confirm the change.
+
+        **Requires:** JWT Bearer token in Authorization header.
+      operationId: changeEmail
+      tags:
+        - Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: The new email address
+            example:
+              email: new-email@example.com
+      responses:
+        "200":
+          description: Confirmation email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Confirmation link has been sent to your new email address. Please confirm to complete the change.
+        "400":
+          description: Bad request (Invalid email or already registered)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /deactivateAccount:
     post:
       summary: Deactivate account or organization
