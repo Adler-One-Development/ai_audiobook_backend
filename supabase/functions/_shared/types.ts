@@ -91,3 +91,19 @@ export interface ResetPasswordRequest {
     access_token: string;
     newPassword: string;
 }
+
+// Copyrights API response interfaces
+export interface CopyrightsGetResponse extends SuccessResponse {
+    data: {
+        copyrights_text: string | null;
+        updated_at: string | null;
+    } | null;
+}
+
+export interface CopyrightsSetResponse extends SuccessResponse {
+    data: {
+        copyrights_text: string | null;
+        created_at: string;
+        updated_at: string | null;
+    };
+}

@@ -394,7 +394,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-
   /deactivateAccount:
     post:
       summary: Deactivate account or organization
@@ -1141,6 +1140,113 @@ paths:
                 status: error
                 message: Old password is incorrect
 
+  /getOrganizationCopyright:
+    post:
+      summary: Get organization copyright text
+      description: |
+        Gets the authenticated user's organization copyright text.
+
+        **Requires:** JWT Bearer token in Authorization header
+      tags:
+        - Organization Copyright Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organization_id:
+                  type: string
+                  format: uuid
+              required:
+                - organization_id
+      responses:
+        "200":
+          description: Copyrights fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Copyrights fetched successfully
+                  data:
+                    type: object
+                    properties:
+                      copyrights_text:
+                        type: string
+                      updated_at:
+                        type: string
+                        format: date-time
+        "403":
+          description: Unauthorized
+        "404":
+          description: Organization or User not found
+  /setOrganizationCopyright:
+    post:
+      summary: Set (Upsert) organization copyright text
+      description: |
+        Sets (Upserts) the authenticated user's organization copyright text.
+
+        **Requires:** JWT Bearer token in Authorization header
+      tags:
+        - Organization Copyright Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organization_id:
+                  type: string
+                  format: uuid
+                copyrights_text:
+                  type: string
+                  example: "© 2026 Example Corporation. All rights reserved. No part of this software, documentation, or related materials may be reproduced, distributed, or transmitted in any form or by any means without prior written permission from Example Corporation."
+              required:
+                - organization_id
+                - copyrights_text
+      responses:
+        "200":
+          description: Copyright created or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Copyright updated successfully
+                  data:
+                    type: object
+                    properties:
+                      copyrights_text:
+                        type: string
+                      created_at:
+                        type: string
+                        format: date-time
+                      updated_at:
+                        type: string
+                        format: date-time
+        "403":
+          description: Unauthorized
+        "404":
+          description: Organization or User not found
   /getOrganization:
     get:
       summary: Get user's organization
@@ -1566,8 +1672,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
-
 
   /markUserAsActive:
     post:
@@ -2924,7 +3028,7 @@ paths:
       summary: Flush entire database (ADMIN ONLY)
       description: |
         **DANGER: This permanently deletes ALL data from the database.**
-        
+
         Requires admin password. Deletes all entries from:
         - auth.users (Supabase Auth)
         - users table
@@ -2932,7 +3036,7 @@ paths:
         - copyrights table
         - profile_pictures table and storage bucket
         - industries table
-        
+
         **Does NOT delete:** credits_pricing table
       operationId: flushDatabase
       tags:
@@ -2989,3 +3093,5 @@ tags:
     description: Payment methods and billing history management endpoints
   - name: Backend ADMIN Controls
     description: Administrative endpoints for backend management (DANGEROUS - requires admin password)
+  - name: Organization Copyright Management
+    description: Organization Copyright management endpoints
