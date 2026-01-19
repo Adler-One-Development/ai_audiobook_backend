@@ -2875,16 +2875,6 @@ paths:
                   processingTimeMs:
                     type: integer
 
-tags:
-  - name: Authentication
-    description: User authentication and account management endpoints
-  - name: Settings Management
-    description: User profile and settings management endpoints
-  - name: Multi-Factor Authentication
-    description: 2FA enrollment and verification endpoints
-  - name: Payment Management
-    description: Payment methods and billing history management endpoints
-
   /flushDatabase:
     post:
       summary: Flush entire database (ADMIN ONLY)
@@ -2943,3 +2933,15 @@ tags:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+tags:
+  - name: Authentication
+    description: User authentication and account management endpoints
+  - name: Settings Management
+    description: User profile and settings management endpoints
+  - name: Multi-Factor Authentication
+    description: 2FA enrollment and verification endpoints
+  - name: Payment Management
+    description: Payment methods and billing history management endpoints
+  - name: Backend ADMIN Controls
+    description: Administrative endpoints for backend management (DANGEROUS - requires admin password)
