@@ -2877,3 +2877,62 @@ tags:
     description: 2FA enrollment and verification endpoints
   - name: Payment Management
     description: Payment methods and billing history management endpoints
+
+  /flushDatabase:
+    post:
+      summary: Flush entire database (ADMIN ONLY)
+      description: |
+        **DANGER: This permanently deletes ALL data from the database.**
+        
+        Requires admin password. Deletes all entries from:
+        - auth.users (Supabase Auth)
+        - users table
+        - organizations table
+        - copyrights table
+        - profile_pictures table and storage bucket
+        - industries table
+        
+        **Does NOT delete:** credits_pricing table
+      operationId: flushDatabase
+      tags:
+        - Backend ADMIN Controls
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+                  description: Admin password to authorize flush operation
+            example:
+              password: "your-admin-password"
+      responses:
+        "200":
+          description: Database flushed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Database flushed successfully
+        "403":
+          description: Invalid admin password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Invalid admin password
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
