@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
         ),
         created_at,
         created_by,
+        is_active,
         creator:created_by (
           id,
           full_name,
@@ -97,54 +98,79 @@ Deno.serve(async (req) => {
             console.error("Failed to fetch auth data:", authDataError);
         }
 
-        // Create a map of user_id -> last_sign_in_at
+        // Create maps for user_id -> last_sign_in_at and user_id -> created_at
         const lastSignInMap = new Map();
+        const createdAtMap = new Map();
         if (authUsers?.users) {
             authUsers.users.forEach((authUser: any) => {
                 if (memberIds.includes(authUser.id)) {
                     lastSignInMap.set(authUser.id, authUser.last_sign_in_at);
+                    createdAtMap.set(authUser.id, authUser.created_at);
                 }
             });
         }
 
         // Format the response
-        const formattedMembers = (members || []).map((member: any) => ({
-            id: member.id,
-            fullName: member.full_name,
-            email: member.email,
-            phone: member.phone,
-            publisherName: member.publisher_name,
-            userType: member.user_type,
-            role: member.role,
-            industry: member.industries
-                ? {
-                    id: member.industries.id,
-                    industryName: member.industries.industry_name,
-                }
-                : null,
-            profilePicture: member.profile_pictures
-                ? {
-                    id: member.profile_pictures.id,
-                    url: member.profile_pictures.url,
-                }
-                : null,
-            isOwner: member.id === organization.owner_id,
-            createdAt: member.created_at,
-            createdBy: member.creator
-                ? {
-                    id: member.creator.id,
-                    name: member.creator.full_name,
-                    email: member.creator.email,
-                    profilePicture: member.creator.profile_pictures
-                        ? {
-                            id: member.creator.profile_pictures.id,
-                            url: member.creator.profile_pictures.url,
-                        }
-                        : null,
-                }
-                : null,
-            lastActive: lastSignInMap.get(member.id) || null,
-        }));
+        const formattedMembers = (members || []).map((member: any) => {
+            const lastActive = lastSignInMap.get(member.id) || null;
+            const createdAt = new Date(member.created_at);
+            const now = new Date();
+            const hoursSinceCreation = (now.getTime() - createdAt.getTime()) /
+                (1000 * 60 * 60);
+
+            // Calculate status based on is_active, lastActive, and invite age
+            let status: "Active" | "Invited" | "Expired" | "Inactive";
+            if (member.is_active === false) {
+                status = "Inactive";
+            } else if (lastActive !== null) {
+                status = "Active";
+            } else if (hoursSinceCreation > 1) {
+                // Password reset link expires after 1 hour (Supabase default)
+                status = "Expired";
+            } else {
+                status = "Invited";
+            }
+
+            return {
+                id: member.id,
+                fullName: member.full_name,
+                email: member.email,
+                phone: member.phone,
+                publisherName: member.publisher_name,
+                userType: member.user_type,
+                role: member.role,
+                industry: member.industries
+                    ? {
+                        id: member.industries.id,
+                        industryName: member.industries.industry_name,
+                    }
+                    : null,
+                profilePicture: member.profile_pictures
+                    ? {
+                        id: member.profile_pictures.id,
+                        url: member.profile_pictures.url,
+                    }
+                    : null,
+                isOwner: member.id === organization.owner_id,
+                createdAt: member.created_at,
+                createdBy: member.creator
+                    ? {
+                        id: member.creator.id,
+                        name: member.creator.full_name,
+                        email: member.creator.email,
+                        profilePicture: member.creator.profile_pictures
+                            ? {
+                                id: member.creator.profile_pictures.id,
+                                url: member.creator.profile_pictures.url,
+                            }
+                            : null,
+                    }
+                    : null,
+                lastActive: lastActive,
+                addedOn: createdAtMap.get(member.id) || null,
+                status: status,
+            };
+        });
 
         // Create response
         const response = {

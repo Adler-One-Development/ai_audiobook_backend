@@ -53,7 +53,9 @@ Deno.serve(async (req) => {
         industries (id, industry_name),
         profile_picture_id,
         profile_pictures(id, url),
-        is_2fa_enabled
+        is_2fa_enabled,
+        is_active,
+        organization_id
       `,
             )
             .eq("id", authData.user.id)
@@ -63,9 +65,37 @@ Deno.serve(async (req) => {
             return errorResponse("User data not found", 404);
         }
 
+        // Check if user is active
+        if (userData.is_active === false) {
+            return errorResponse(
+                "Your account has been deactivated. Please contact your organization administrator.",
+                403,
+            );
+        }
+
+        // Check if organization is active
+        if (userData.organization_id) {
+            const { data: orgData, error: orgError } = await adminClient
+                .from("organizations")
+                .select("is_active")
+                .eq("id", userData.organization_id)
+                .single();
+
+            if (!orgError && orgData && orgData.is_active === false) {
+                return errorResponse(
+                    "Your organization has been deactivated. All members cannot log in.",
+                    403,
+                );
+            }
+        }
+
         // Format user data
-        const industry = Array.isArray(userData.industries) ? userData.industries[0] : userData.industries;
-        const profilePicture = Array.isArray(userData.profile_pictures) ? userData.profile_pictures[0] : userData.profile_pictures;
+        const industry = Array.isArray(userData.industries)
+            ? userData.industries[0]
+            : userData.industries;
+        const profilePicture = Array.isArray(userData.profile_pictures)
+            ? userData.profile_pictures[0]
+            : userData.profile_pictures;
 
         const user: User = {
             id: userData.id,
@@ -95,7 +125,9 @@ Deno.serve(async (req) => {
         // Create response
         const response: LoginResponse = {
             status: "success",
-            message: is2FAEnabled ? "MFA verification required" : "Login successful",
+            message: is2FAEnabled
+                ? "MFA verification required"
+                : "Login successful",
             token: authData.session.access_token,
             refreshToken: authData.session.refresh_token,
             expiresIn: authData.session.expires_in || 3600,
