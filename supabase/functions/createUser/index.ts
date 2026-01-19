@@ -170,8 +170,8 @@ Deno.serve(async (req) => {
                         email,
                         {
                             redirectTo: `${
-                                req.headers.get("origin") ||
-                                "https://yourdomain.com"
+                                Deno.env.get("FRONTEND_URL") ||
+                                "https://ai-audiobook-dev.vercel.app"
                             }/set-new-password`,
                         },
                     );
