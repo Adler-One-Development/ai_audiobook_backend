@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {
+    corsHeaders,
     errorResponse,
     handleCorsPreFlight,
     successResponse,
@@ -207,6 +208,24 @@ Deno.serve(async (req) => {
             users: createdUsers,
             failed: failedUsers.length > 0 ? failedUsers : undefined,
         };
+
+        // Check for total failure
+        if (createdUsers.length === 0 && failedUsers.length > 0) {
+            return new Response(
+                JSON.stringify({
+                    status: "error",
+                    message: "Failed to create any users. Please check errors.",
+                    failed: failedUsers,
+                }),
+                {
+                    status: 400,
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...corsHeaders,
+                    },
+                },
+            );
+        }
 
         return successResponse(response, 201);
     } catch (error) {
