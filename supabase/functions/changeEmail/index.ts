@@ -29,6 +29,24 @@ Deno.serve(async (req) => {
             return errorResponse("Email is required", 400);
         }
 
+        // Check if user has 2FA enabled
+        // We use admin client to check the public.users table as the source of truth
+        const adminClient = createAdminClient();
+        const { data: userData, error: userError } = await adminClient
+            .from("users")
+            .select("is_2fa_enabled")
+            .eq("id", user.id)
+            .single();
+
+        if (userError) {
+            console.error("Error checking 2FA status:", userError);
+            return errorResponse("Failed to verify account status", 500);
+        }
+
+        if (userData?.is_2fa_enabled) {
+            return errorResponse("Please disable 2FA before changing your email.", 403);
+        }
+
         // Use client scoped to the user to update email
         const authHeader = req.headers.get("Authorization");
         const token = authHeader?.replace("Bearer ", "");
@@ -47,7 +65,7 @@ Deno.serve(async (req) => {
             refresh_token: "dummy-refresh-token",
         });
 
-        const { data: updateData, error: updateError } = await supabase.auth
+        const { data: _updateData, error: updateError } = await supabase.auth
             .updateUser({
                 email: email,
             });
@@ -60,8 +78,6 @@ Deno.serve(async (req) => {
         console.log("Email change initiated successfully for user:", user.id);
 
         // Update user email in public.users table
-        const adminClient = createAdminClient();
-
         const { error: updatePublicError } = await adminClient
             .from("users")
             .update({ email: email })
