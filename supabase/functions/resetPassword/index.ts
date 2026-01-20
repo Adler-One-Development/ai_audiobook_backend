@@ -62,6 +62,22 @@ Deno.serve(async (req) => {
             );
         }
 
+        // 2. Verify new password is not same as old password
+        // We attempt to sign in with the new password; if it succeeds, it's the same as the old one.
+        const { error: signInError } = await userClient.auth.signInWithPassword(
+            {
+                email: user.email!,
+                password: newPassword,
+            },
+        );
+
+        if (!signInError) {
+            return errorResponse(
+                "New password cannot be the same as old password",
+                400,
+            );
+        }
+
         // 2. Perform the password update using the Service Role (Admin)
         // This is more robust as it doesn't rely on the temporary session context for the update itself
         const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -82,7 +98,7 @@ Deno.serve(async (req) => {
 
         // Create response
         const response = {
-            status: "success",
+            status: "success" as const,
             message: "Password has been reset successfully",
         };
 
