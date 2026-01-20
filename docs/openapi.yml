@@ -1814,6 +1814,57 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /resendInvite:
+    post:
+      summary: Resend invitation to user
+      description: |
+        Resends an invitation to a user who has not yet accepted their invite.
+
+        **Mechanism:**
+        - Checks if user is in "Invited" or "Expired" state (never logged in).
+        - **Deletes** the existing user account (Auth and DB).
+        - **Re-creates** the user account with the same email and role.
+        - Sends a new password reset (invitation) email.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: resendInvite
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                  description: ID of the user to re-invite
+      responses:
+        "200":
+          description: Invitation resent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad request (User already active, invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (Insufficient permissions)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /getCreditsCost:
     get:
       summary: Get credits pricing
