@@ -84,9 +84,7 @@ Deno.serve(async (req) => {
             customer: organization.stripe_customer_id,
             payment_method: paymentMethodToUse,
             description:
-                `Purchase of ${numberOfCredits} credits. Price per Credit: $${pricePerCredit}. Total Amount: $${
-                    amountToCharge.toFixed(2)
-                }.`,
+                `Number Of Credits Purchased : ${numberOfCredits}\nPrice per Credit : $${pricePerCredit}`,
             confirm: true,
             automatic_payment_methods: {
                 enabled: true,
