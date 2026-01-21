@@ -77,17 +77,6 @@ Deno.serve(async (req) => {
 
         console.log("Email change initiated successfully for user:", user.id);
 
-        // Update user email in public.users table
-        const { error: updatePublicError } = await adminClient
-            .from("users")
-            .update({ email: email })
-            .eq("id", user.id);
-
-        if (updatePublicError) {
-            console.error("Change email error:", updatePublicError);
-            return errorResponse(updatePublicError.message, 400);
-        }
-
         return successResponse(
             {
                 status: "success",

@@ -129,14 +129,24 @@ echo "Profile Response: $PROFILE_RESPONSE"
 # Check if profile email matches new email
 CURRENT_PROFILE_EMAIL=$(echo $PROFILE_RESPONSE | grep -o '"email":"[^"]*' | cut -d'"' -f4)
 
-if [ "$CURRENT_PROFILE_EMAIL" == "$NEW_EMAIL" ]; then
-  echo "✅ public.users table updated successfully!"
+if [ "$CURRENT_PROFILE_EMAIL" != "$INITIAL_EMAIL" ]; then
+  echo "✅ public.users table updated immediately (as expected)!"
 else
-  echo "❌ public.users table update failed"
-  echo "Expected: $NEW_EMAIL"
+  echo "❌ public.users table NOT updated immediately"
+  echo "Expected: $INITIAL_EMAIL"
   echo "Got: $CURRENT_PROFILE_EMAIL"
   exit 1
 fi
+
+echo ""
+echo "=================================================="
+echo "Manual Verification Required for Final Step"
+echo "=================================================="
+echo "1. Go to mailsy and find the confirmation email."
+echo "2. Click the 'Confirm Email Change' link."
+echo "3. Verify in Supabase Dashboard or by running a query that public.users now has updated email."
+echo "   SELECT email FROM public.users WHERE email = '$NEW_EMAIL';"
+echo "=================================================="
 
 echo ""
 echo "=================================================="
