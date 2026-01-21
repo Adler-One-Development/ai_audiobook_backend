@@ -936,6 +936,9 @@ paths:
                           url:
                             type: string
                             format: uri
+                      auth_type:
+                        type: string
+                        description: Authentication provider name (e.g. email, google)
               example:
                 status: success
                 message: Profile fetched successfully
@@ -948,6 +951,7 @@ paths:
                   industry:
                     id: 550e8400-e29b-41d4-a716-446655440000
                     industry_name: Academic Publishing
+                  auth_type: email
                   profile_picture:
                     id: 660e8400-e29b-41d4-a716-446655440000
                     url: https://example.com/profile.jpg

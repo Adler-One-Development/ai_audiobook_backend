@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
             role: userData.role,
             industry: userData.industries || null,
             profile_picture: userData.profile_pictures || null,
+            auth_type: user!.app_metadata?.provider || "email",
         };
 
         return successResponse(
