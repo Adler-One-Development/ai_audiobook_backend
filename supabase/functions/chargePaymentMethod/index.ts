@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
     try {
         const supabaseClient = createClientFromRequest(req);
-        const { numberOfCredits, payment_method_id, description } = await req
+        const { numberOfCredits, payment_method_id } = await req
             .json();
 
         if (!numberOfCredits || numberOfCredits <= 0) {
@@ -83,8 +83,10 @@ Deno.serve(async (req) => {
             currency: currency,
             customer: organization.stripe_customer_id,
             payment_method: paymentMethodToUse,
-            description: description ||
-                `Purchase of ${numberOfCredits} credits`,
+            description:
+                `Purchase of ${numberOfCredits} credits. Price per Credit: $${pricePerCredit}. Total Amount: $${
+                    amountToCharge.toFixed(2)
+                }.`,
             confirm: true,
             automatic_payment_methods: {
                 enabled: true,
@@ -136,8 +138,8 @@ Deno.serve(async (req) => {
             status: "success",
             message: "Credits purchased successfully",
             purchase: {
-                credits_added: numberOfCredits,
-                amount_charged: amountToCharge,
+                total_credits_purchased: numberOfCredits,
+                total_amount_spent: amountToCharge,
                 currency: currency,
                 price_per_credit: pricePerCredit,
                 transaction_id: paymentIntent.id,

@@ -3036,6 +3036,14 @@ paths:
                           type: boolean
                         amount_refunded:
                           type: number
+                        price_per_credit:
+                          type: number
+                          nullable: true
+                        total_credits_purchased:
+                          type: integer
+                          nullable: true
+                        total_amount_spent:
+                          type: number
                   has_more:
                     type: boolean
                   processingTimeMs:
@@ -3129,9 +3137,9 @@ paths:
                   purchase:
                     type: object
                     properties:
-                      credits_added:
+                      total_credits_purchased:
                         type: integer
-                      amount_charged:
+                      total_amount_spent:
                         type: number
                       currency:
                         type: string

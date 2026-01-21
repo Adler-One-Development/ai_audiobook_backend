@@ -65,6 +65,13 @@ Deno.serve(async (req) => {
             },
             refunded: charge.refunded,
             amount_refunded: charge.amount_refunded / 100,
+            price_per_credit: charge.metadata?.price_per_credit
+                ? Number(charge.metadata.price_per_credit)
+                : null,
+            total_credits_purchased: charge.metadata?.credits
+                ? Number(charge.metadata.credits)
+                : null,
+            total_amount_spent: charge.amount / 100,
         }));
 
         return successResponse({
