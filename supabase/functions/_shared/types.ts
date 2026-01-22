@@ -17,6 +17,12 @@ export interface Industry {
     industryName: string;
 }
 
+// Genre interface
+export interface Genre {
+    id: string;
+    genreName: string;
+}
+
 // User profile interface
 export interface User {
     id: string;

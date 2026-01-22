@@ -94,6 +94,18 @@ components:
         - email
         - userType
 
+    Genre:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        genreName:
+          type: string
+      required:
+        - id
+        - genreName
+
     SuccessResponse:
       type: object
       properties:
@@ -3209,6 +3221,157 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /getAllGenres:
+    get:
+      summary: Get all genres
+      description: |
+        Retrieves a list of all available book genres.
+      operationId: getAllGenres
+      tags:
+        - Audiobook Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Genres retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      genres:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Genre"
+              example:
+                status: success
+                message: Genres retrieved successfully
+                genres:
+                  - id: "unique-uuid-1"
+                    genreName: "Fiction"
+                  - id: "unique-uuid-2"
+                    genreName: "Mystery"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /createNewProject:
+    post:
+      summary: Create a new audiobook project
+      description: |
+        Creates a new project with book details and file uploads.
+        - Uploads cover image and manuscript to storage.
+        - Creates entries in `galleries` and `projects` tables.
+        - Assigns owner and organization based on authenticated user.
+      operationId: createNewProject
+      tags:
+        - Audiobook Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - author
+                - genre_id
+                - description
+                - manuscript
+              properties:
+                title:
+                  type: string
+                author:
+                  type: string
+                genre_id:
+                  type: string
+                  format: uuid
+                  description: UUID of the genre
+                description:
+                  type: string
+                isbn:
+                  type: string
+                publisher_name:
+                  type: string
+                publication_date:
+                  type: string
+                  format: date-time
+                cover_image:
+                  type: string
+                  format: binary
+                  description: Cover image file (optional)
+                manuscript:
+                  type: string
+                  format: binary
+                  description: Manuscript file (mandatory)
+      responses:
+        "201":
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      project:
+                        type: object
+                        description: Created project details
+        "400":
+          description: Bad Request (Missing fields or invalid input)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getAllProjects:
+    get:
+      summary: Get all projects for user
+      description: |
+        Retrieves all projects where the user is the owner or has implicit access via organization.
+      operationId: getAllProjects
+      tags:
+        - Audiobook Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      projects:
+                        type: array
+                        items:
+                          type: object
+                          description: Project details with book info
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 tags:
   - name: Authentication
     description: User authentication and account management endpoints
@@ -3222,3 +3385,5 @@ tags:
     description: Administrative endpoints for backend management (DANGEROUS - requires admin password)
   - name: Organization Copyright Management
     description: Organization Copyright management endpoints
+  - name: Audiobook Management
+    description: APIs for managing audiobook project data (genres, etc.)
