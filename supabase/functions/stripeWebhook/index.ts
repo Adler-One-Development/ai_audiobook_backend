@@ -1,5 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { errorResponse, successResponse } from "../_shared/response-helpers.ts";
+import {
+    errorResponse,
+    handleCorsPreFlight,
+    successResponse,
+} from "../_shared/response-helpers.ts";
 import { createAdminClient } from "../_shared/supabase-client.ts";
 import Stripe from "npm:stripe@17.4.0";
 
@@ -10,6 +14,18 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
 
 Deno.serve(async (req) => {
+    if (req.method === "OPTIONS") {
+        return handleCorsPreFlight();
+    }
+
+    // Allow GET requests for keep-alive/health checks
+    if (req.method === "GET") {
+        return successResponse({
+            status: "success",
+            message: "Webhook is active",
+        }, 200);
+    }
+
     const signature = req.headers.get("stripe-signature");
 
     if (!signature) {
@@ -77,7 +93,11 @@ Deno.serve(async (req) => {
                 console.log(`Unhandled event type: ${event.type}`);
         }
 
-        return successResponse({ received: true }, 200);
+        return successResponse({
+            status: "success",
+            message: "Webhook processed successfully",
+            received: true,
+        }, 200);
     } catch (err: unknown) {
         const error = err as Error;
         console.error("Webhook error:", error.message);
