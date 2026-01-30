@@ -567,3 +567,8 @@ entrypoint = "./functions/setOrganizationCopyright/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/changeEmail/index.ts"
+
+[functions.getAllVoices]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getAllVoices/index.ts"

@@ -7,6 +7,7 @@ info:
     ## Authentication Methods
     - **SupabaseAuth**: Use your Supabase anon key in the `apikey` header
     - **BearerAuth**: Use JWT access token obtained from login/signup
+    - **ElevenLabsAuth**: Use your ElevenLabs API key in the `xi-api-key` header
 
     ## Base URL (QA Environment)
     `https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1`
@@ -25,6 +26,7 @@ servers:
 # BearerAuth is also available and will be sent if provided in authorize dialog
 security:
   - SupabaseAuth: []
+  - ElevenLabsAuth: []
 
 components:
   securitySchemes:
@@ -39,6 +41,12 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: JWT access token from login/signup
+
+    ElevenLabsAuth:
+      type: apiKey
+      in: header
+      name: xi-api-key
+      description: API Key for ElevenLabs (forwarded to backend)
 
   schemas:
     User:
@@ -160,6 +168,44 @@ components:
       required:
         - id
         - book
+
+    Voice:
+      type: object
+      properties:
+        voice_id:
+          type: string
+          description: Unique identifier for the voice
+        name:
+          type: string
+          description: Name of the voice
+        category:
+          type: string
+          description: Category of the voice (e.g., premade)
+        labels:
+          type: object
+          properties:
+            accent:
+              type: string
+            descriptive:
+              type: string
+            age:
+              type: string
+            gender:
+              type: string
+            language:
+              type: string
+            use_case:
+              type: string
+        description:
+          type: string
+          description: Detailed description of the voice characteristics
+        preview_url:
+          type: string
+          format: uri
+          description: URL to a preview audio file
+      required:
+        - voice_id
+        - name
 
     SuccessResponse:
       type: object
@@ -3386,6 +3432,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getAllVoices:
+    get:
+      summary: Get all available voices
+      description: |
+        Retrieves a list of available voices from ElevenLabs.
+
+        This endpoint acts as a proxy to the ElevenLabs `v2/voices` API.
+        It requires the `apikey` header (Supabase Anon Key), which is used to authenticate the request.
+        The backend then forwards the request to ElevenLabs using the configured API key.
+      operationId: getAllVoices
+      tags:
+        - Audiobook Management
+      security:
+        - SupabaseAuth: []
+          ElevenLabsAuth: []
+        - BearerAuth: []
+          ElevenLabsAuth: []
+      responses:
+        "200":
+          description: Voices retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      voices:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Voice"
         "500":
           description: Internal server error
           content:

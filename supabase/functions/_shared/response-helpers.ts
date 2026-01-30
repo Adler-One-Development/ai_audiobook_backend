@@ -6,7 +6,7 @@ import type { ErrorResponse, SuccessResponse } from "./types.ts";
 export const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
+        "authorization, x-client-info, apikey, content-type, xi-api-key",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
