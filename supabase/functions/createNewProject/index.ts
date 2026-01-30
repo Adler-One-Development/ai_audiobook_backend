@@ -138,16 +138,16 @@ Deno.serve(async (req) => {
         }
 
         // Create Project Entry
+        const studioId = formData.get("studio_id")?.toString() || null;
+
+        // Create Project Entry
         const bookData = {
             title,
             author,
-            genre_id: genreId,
             description,
             isbn,
             publisher_name: publisherName,
             publication_date: publicationDate,
-            gallery_id: gallery.id,
-            studio_id: null, // Not specified in request, explicit null
         };
 
         const { data: project, error: projectError } = await adminClient
@@ -158,8 +158,10 @@ Deno.serve(async (req) => {
                 access_levels: [],
                 book: bookData,
                 gallery_id: gallery.id,
+                genre_id: genreId,
+                studio_id: studioId,
             })
-            .select("*, gallery:galleries(*)")
+            .select("*, gallery:galleries(*), genre:genres(*)")
             .single();
 
         if (projectError) {

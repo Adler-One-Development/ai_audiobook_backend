@@ -134,8 +134,6 @@ components:
               type: string
             author:
               type: string
-            genre_id:
-              type: string
             description:
               type: string
             isbn:
@@ -146,6 +144,12 @@ components:
               type: string
         gallery:
           $ref: "#/components/schemas/Gallery"
+        genre:
+          $ref: "#/components/schemas/Genre"
+        studio_id:
+          type: string
+          format: uuid
+          nullable: true
         eleven_labs_project_id:
           type: string
           nullable: true
