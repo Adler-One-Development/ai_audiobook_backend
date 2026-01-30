@@ -106,6 +106,62 @@ components:
         - id
         - genreName
 
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        owner_id:
+          type: string
+          format: uuid
+          description: User ID of the project owner
+        organization_id:
+          type: string
+          format: uuid
+          description: Organization ID that owns this project
+        access_levels:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: List of Organization UUIDs that have shared access
+        book:
+          type: object
+          description: Book metadata (title, author, etc.)
+          properties:
+            title:
+              type: string
+            author:
+              type: string
+            genre_id:
+              type: string
+            description:
+              type: string
+            isbn:
+              type: string
+            publisher_name:
+              type: string
+            publication_date:
+              type: string
+            gallery_id:
+              type: string
+              format: uuid
+        eleven_labs_project_id:
+          type: string
+          nullable: true
+          description: Project ID from ElevenLabs API
+        progress:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.0
+          description: Progress of the audio generation (0.0 to 1.0)
+      required:
+        - id
+        - book
+
     SuccessResponse:
       type: object
       properties:
@@ -3324,8 +3380,7 @@ paths:
                   - type: object
                     properties:
                       project:
-                        type: object
-                        description: Created project details
+                        $ref: "#/components/schemas/Project"
         "400":
           description: Bad Request (Missing fields or invalid input)
           content:
@@ -3363,8 +3418,61 @@ paths:
                       projects:
                         type: array
                         items:
-                          type: object
-                          description: Project details with book info
+                          $ref: "#/components/schemas/Project"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getProjectById:
+    get:
+      summary: Get a specific project by ID
+      description: |
+        Retrieves a single project's details by its UUID.
+
+        **Requires:**
+        - JWT Bearer token
+        - User must be the owner of the project OR have access via organization/shared access.
+      operationId: getProjectById
+      tags:
+        - Audiobook Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: UUID of the project to retrieve
+      responses:
+        "200":
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      project:
+                        $ref: "#/components/schemas/Project"
+        "400":
+          description: Bad Request (Missing ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Project not found or access denied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Internal server error
           content:
