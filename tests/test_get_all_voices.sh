@@ -21,6 +21,6 @@ curl -i -X POST "$API_URL" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -H "apikey: $SUPABASE_ANON_KEY" \
-  -H "xi-api-key: $XI_API_KEY"
+  -H "eleven_labs_api_key: $XI_API_KEY"
 
 echo -e "\n\nDone."

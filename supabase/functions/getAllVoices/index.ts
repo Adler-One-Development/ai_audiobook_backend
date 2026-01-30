@@ -16,10 +16,10 @@ Deno.serve(async (req) => {
         const { user, error: authError } = await getAuthenticatedUser(req);
         if (authError || !user) return authError;
 
-        const xiApiKey = req.headers.get("xi-api-key");
+        const elevenLabsApiKey = req.headers.get("eleven_labs_api_key");
 
-        if (!xiApiKey) {
-            return errorResponse("Missing xi-api-key header", 400); 
+        if (!elevenLabsApiKey) {
+            return errorResponse("Missing eleven_labs_api_key header", 400); 
         }
 
         const elevenLabsResponse = await fetch(
@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
             {
                 method: "GET",
                 headers: {
-                    "xi-api-key": xiApiKey,
+                    "xi-api-key": elevenLabsApiKey,
                 },
             }
         );

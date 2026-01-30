@@ -7,7 +7,7 @@ info:
     ## Authentication Methods
     - **SupabaseAuth**: Use your Supabase anon key in the `apikey` header
     - **BearerAuth**: Use JWT access token obtained from login/signup
-    - **ElevenLabsAuth**: Use your ElevenLabs API key in the `xi-api-key` header
+    - **ElevenLabsAuth**: Use your ElevenLabs API key in the `eleven_labs_api_key` header
 
     ## Base URL (QA Environment)
     `https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1`
@@ -45,7 +45,7 @@ components:
     ElevenLabsAuth:
       type: apiKey
       in: header
-      name: xi-api-key
+      name: eleven_labs_api_key
       description: API Key for ElevenLabs (forwarded to backend)
 
   schemas:
