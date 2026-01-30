@@ -144,9 +144,8 @@ components:
               type: string
             publication_date:
               type: string
-            gallery_id:
-              type: string
-              format: uuid
+        gallery:
+          $ref: "#/components/schemas/Gallery"
         eleven_labs_project_id:
           type: string
           nullable: true

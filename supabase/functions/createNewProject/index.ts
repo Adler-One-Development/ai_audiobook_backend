@@ -157,8 +157,9 @@ Deno.serve(async (req) => {
                 organization_id: userData.organization_id,
                 access_levels: [],
                 book: bookData,
+                gallery_id: gallery.id,
             })
-            .select("*")
+            .select("*, gallery:galleries(*)")
             .single();
 
         if (projectError) {

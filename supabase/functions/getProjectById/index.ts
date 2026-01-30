@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
         // Fetch project, ensuring user has access (owner OR in access_levels)
         const { data: project, error: projectError } = await adminClient
             .from("projects")
-            .select("*")
+            .select("*, gallery:galleries(*)")
             .eq("id", projectId)
             .or(`owner_id.eq.${user.id},access_levels.cs.{${user.id}}`)
             .single();

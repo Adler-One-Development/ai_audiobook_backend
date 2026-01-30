@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
         const { data: projects, error: projectsError } = await adminClient
             .from("projects")
-            .select("*")
+            .select("*, gallery:galleries(*)")
             .or(`owner_id.eq.${user.id},access_levels.cs.{${user.id}}`);
 
         if (projectsError) {
