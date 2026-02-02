@@ -611,13 +611,15 @@ async function processProjectCreation(ws, data) {
                 gallery_id: galleryId,
                 chapters: studioChapters,
                 voices: [{ id: voice_id, status: 'CAST' }],
-                complete_content_json: {}, // As requested
+                complete_content_json: generatedContent, // The JSON we sent to ElevenLabs
                 comments: []
             })
         });
 
         if (!studioInsertResponse.ok) {
-            console.error('Failed to create studio record:', await studioInsertResponse.text());
+            const errorText = await studioInsertResponse.text();
+            console.error('Failed to create studio record:', errorText);
+            throw new Error(`Studio table insert failed: ${errorText}`);
         }
 
         // Update Project with Studio ID
