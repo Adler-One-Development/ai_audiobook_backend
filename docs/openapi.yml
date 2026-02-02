@@ -190,6 +190,55 @@ components:
         - message
 
 paths:
+  /getAllVoices:
+    get:
+      summary: Get all available voices
+      description: |
+        Retrieves a list of all available ElevenLabs voices stored in the system.
+        No authentication is required for this endpoint.
+      operationId: getAllVoices
+      tags:
+        - Resources
+      responses:
+        "200":
+          description: A list of voices
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      voices:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            voice_id:
+                              type: string
+                              example: "21m00Tcm4TlvDq8ikWAM"
+                            name:
+                              type: string
+                              example: "Rachel"
+                            category:
+                              type: string
+                              example: "premade"
+                            preview_url:
+                              type: string
+                              format: uri
+                              example: "https://storage.googleapis.com/eleven-public-prod/premade/voices/21m00Tcm4TlvDq8ikWAM/df6788f9-5c96-470d-8312-a63e8586a635.mp3"
+                            description:
+                              type: string
+                              example: "Calm and soothing voice."
+                            labels:
+                              type: object
+                            fine_tuning:
+                              type: object
+                            verified_languages:
+                              type: array
+                              items:
+                                type: object
+
   /signUp:
     post:
       summary: Register a new user
