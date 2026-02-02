@@ -549,14 +549,23 @@ async function processProjectCreation(ws, data) {
         const elevenLabsProjectId = elData.project.project_id;
 
         // Fetch gallery_id from project
-        const { data: galleryFetchData, error: galleryFetchError } = await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${project_id}&select=gallery_id`, {
+        const galleryResponse = await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${project_id}&select=gallery_id`, {
              headers: {
                 'apikey': supabase_anon_key,
-                'Authorization': `Bearer ${access_token}`
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json'
             }
-        }).then(res => res.json());
-
-        const galleryId = (galleryFetchData && galleryFetchData.length > 0) ? galleryFetchData[0].gallery_id : null;
+        });
+        
+        let galleryId = null;
+        if (galleryResponse.ok) {
+            const galleryData = await galleryResponse.json();
+            if (Array.isArray(galleryData) && galleryData.length > 0) {
+                galleryId = galleryData[0].gallery_id;
+            }
+        } else {
+            console.error('Failed to fetch gallery_id:', await galleryResponse.text());
+        }
 
         // Fetch Chapters from ElevenLabs
         const chaptersResponse = await fetch(`https://api.elevenlabs.io/v1/studio/projects/${elevenLabsProjectId}/chapters`, {
@@ -598,79 +607,89 @@ async function processProjectCreation(ws, data) {
         }
 
         // Insert into Studio Table
+        ws.send(JSON.stringify({ status: 'processing', message: 'Saving to studio...' }));
+
         const studioInsertResponse = await fetch(`${SUPABASE_URL}/rest/v1/studio`, {
             method: 'POST',
             headers: {
                 'apikey': supabase_anon_key,
-                'Authorization': `Bearer ${access_token}`, 
+                'Authorization': `Bearer ${access_token}`,
                 'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
+                'Prefer': 'return=representation'
             },
             body: JSON.stringify({
-                id: elevenLabsProjectId, // Use ElevenLabs ID as Studio ID
+                id: elevenLabsProjectId, // Using updated TEXT ID
                 gallery_id: galleryId,
                 chapters: studioChapters,
-                voices: [{ id: voice_id, status: 'CAST' }],
-                complete_content_json: generatedContent, // The JSON we sent to ElevenLabs
-                comments: []
+                voices: [voice_id],
+                complete_content_json: generatedContent
             })
         });
 
         if (!studioInsertResponse.ok) {
-            const errorText = await studioInsertResponse.text();
-            console.error('Failed to create studio record:', errorText);
-            throw new Error(`Studio table insert failed: ${errorText}`);
+             throw new Error(`Failed to insert into studio table: ${await studioInsertResponse.text()}`);
         }
 
-        // Update Project with Studio ID
-        const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${project_id}`, {
+         // Update Projects Table
+        const projectUpdateResponse = await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${project_id}`, {
             method: 'PATCH',
             headers: {
                 'apikey': supabase_anon_key,
-                'Authorization': `Bearer ${access_token}`, 
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ studio_id: elevenLabsProjectId })
+            body: JSON.stringify({
+                studio_id: elevenLabsProjectId // Using updated TEXT ID
+            })
         });
 
-        if (!updateResponse.ok) {
-            const errorBody = await updateResponse.text();
-            console.error('Database update failed:', updateResponse.status, errorBody);
+        if (!projectUpdateResponse.ok) {
+             throw new Error(`Failed to update project: ${await projectUpdateResponse.text()}`);
         }
-        
-        console.log(`ElevenLabs Project Created: ${elevenLabsProjectId}, Studio Record Created.`);
 
-        ws.send(JSON.stringify({
-            status: 'success',
-            message: 'Project created successfully',
-            data: { eleven_labs_project_id: elevenLabsProjectId }
+        ws.send(JSON.stringify({ 
+            status: 'completed', 
+            message: 'Audiobook project created successfully!', 
+            data: {
+                project_id: project_id,
+                eleven_labs_project_id: elevenLabsProjectId
+            }
         }));
 
     } catch (error) {
         console.error('Project creation failed:', error);
-        ws.send(JSON.stringify({ status: 'error', message: error.message }));
+        ws.send(JSON.stringify({ 
+            status: 'error', 
+            message: `Process failed: ${error.message}` 
+        }));
     }
 }
 
-function downloadFile(url, dest) {
+async function downloadFile(url, destPath) {
     return new Promise((resolve, reject) => {
-        const file = fs.createWriteStream(dest);
+        const file = fs.createWriteStream(destPath);
         https.get(url, (response) => {
-            response.pipe(file);
-            file.on('finish', () => {
-                file.close(resolve);
-            });
+            if (response.statusCode === 200) {
+                response.pipe(file);
+                file.on('finish', () => {
+                    file.close(resolve);
+                });
+            } else {
+                // If it's a redirect, follow it
+                if (response.statusCode === 302 || response.statusCode === 301) {
+                    downloadFile(response.headers.location, destPath)
+                        .then(resolve)
+                        .catch(reject);
+                } else {
+                    fs.unlink(destPath, () => reject(new Error(`Server responded with ${response.statusCode}: ${response.statusMessage}`)));
+                }
+            }
         }).on('error', (err) => {
-            fs.unlink(dest, () => {});
-            reject(err);
+            fs.unlink(destPath, () => reject(err));
         });
     });
 }
 
-// =============================================================================
-// START SERVER
-// =============================================================================
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on port ${PORT} with WebSocket support`);
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
