@@ -150,10 +150,6 @@ components:
           type: string
           format: uuid
           nullable: true
-        eleven_labs_project_id:
-          type: string
-          nullable: true
-          description: Project ID from ElevenLabs API
         progress:
           type: number
           format: float
@@ -3408,6 +3404,19 @@ paths:
       security:
         - SupabaseAuth: []
           BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
       responses:
         "200":
           description: Projects retrieved successfully
@@ -3418,10 +3427,21 @@ paths:
                   - $ref: "#/components/schemas/SuccessResponse"
                   - type: object
                     properties:
-                      projects:
+                      data:
                         type: array
                         items:
                           $ref: "#/components/schemas/Project"
+                      meta:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+                          totalPages:
+                            type: integer
         "500":
           description: Internal server error
           content:

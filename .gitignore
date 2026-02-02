@@ -24,3 +24,6 @@ deno.lock
 !.vscode/tasks.json
 !.vscode/launch.json
 .idea/
+
+# Local Processing Files
+supabase/functions/WebSocket/File Processing/
