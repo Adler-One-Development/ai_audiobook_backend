@@ -106,6 +106,43 @@ components:
         - id
         - genreName
 
+    Comment:
+      type: object
+      description: A comment on a studio block
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Comment ID
+        user_id:
+          type: string
+          format: uuid
+          description: ID of the user who created the comment
+        user_name:
+          type: string
+          description: Name of the user who created the comment
+        text:
+          type: string
+          description: Comment text content
+        timestamp:
+          type: string
+          format: date-time
+          description: When the comment was created
+        block_id:
+          type: string
+          description: ID of the block this comment is attached to
+        resolved:
+          type: boolean
+          description: Whether the comment has been resolved
+      required:
+        - id
+        - user_id
+        - user_name
+        - text
+        - timestamp
+        - block_id
+        - resolved
+
     Project:
       type: object
       properties:

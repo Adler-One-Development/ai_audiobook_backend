@@ -633,8 +633,7 @@ async function processProjectCreation(ws, data) {
                 id: elevenLabsProjectId, // Using updated TEXT ID
                 gallery_id: galleryId,
                 chapters: studioChapters,
-                voices: [voice_id],
-                complete_content_json: generatedContent
+                voices: [voice_id]
             })
         });
 
