@@ -227,283 +227,6 @@ components:
         - message
 
 paths:
-  /getGallery:
-    get:
-      summary: Get gallery by project or studio ID
-      description: |
-        Retrieves the full gallery object for a given project_id or studio_id.
-        The function checks both the `projects` and `studio` tables for the provided ID,
-        then returns the associated gallery.
-
-        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
-      operationId: getGallery
-      security:
-        - BearerAuth: []
-      tags:
-        - Resources
-      parameters:
-        - name: id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The project_id (UUID) or studio_id (string) to look up the gallery for
-      responses:
-        "200":
-          description: Gallery retrieved successfully
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      gallery:
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                            format: uuid
-                          name:
-                            type: string
-                          files:
-                            type: array
-                            description: Array of file objects in the gallery
-        "400":
-          description: Bad Request - Missing or invalid id parameter
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Unauthorized - Missing or invalid authentication token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Not Found - No gallery found for the provided id
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /deleteFileFromGallery:
-    delete:
-      summary: Delete a file from gallery and storage
-      description: |
-        Deletes a file from both the storage bucket and the gallery JSONB array.
-        The function searches all galleries to find the file, deletes it from the `files` bucket,
-        and removes it from the gallery's files array.
-
-        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
-      operationId: deleteFileFromGallery
-      security:
-        - BearerAuth: []
-      tags:
-        - Resources
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - id
-              properties:
-                id:
-                  type: string
-                  format: uuid
-                  description: The UUID of the file to delete
-                  example: "38d80a10-2cec-4359-93cf-4319d0d7778b"
-      responses:
-        "200":
-          description: File deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "400":
-          description: Bad Request - Missing or invalid id parameter
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Unauthorized - Missing or invalid authentication token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Not Found - File not found in any gallery
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal Server Error - Failed to delete file
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /uploadFileToGallery:
-    post:
-      summary: Upload a file to a gallery
-      description: |
-        Uploads a file to the storage bucket and adds it to a gallery's files array.
-        The file type is validated before upload (PDF, audio formats, Word docs, EPUB, text files).
-
-        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
-      operationId: uploadFileToGallery
-      security:
-        - BearerAuth: []
-      tags:
-        - Resources
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - gallery_id
-                - file
-              properties:
-                gallery_id:
-                  type: string
-                  format: uuid
-                  description: The UUID of the gallery to upload the file to
-                file:
-                  type: string
-                  format: binary
-                  description: The file to upload (PDF, MP3, WAV, AAC, OGG, FLAC, DOC, DOCX, EPUB, TXT, MD)
-      responses:
-        "200":
-          description: File uploaded successfully
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      file:
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                            format: uuid
-                          url:
-                            type: string
-        "400":
-          description: Bad Request - Missing required fields or unsupported file type
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Unauthorized - Missing or invalid authentication token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Not Found - Gallery not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal Server Error - Failed to upload file
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /getTotalCredits:
-    get:
-      summary: Get total available credits for usage
-      description: |
-        Returns the total credits available to the user.
-        Credits are shared within an organization, so this returns the organization owner's credit balance.
-
-        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
-      operationId: getTotalCredits
-      security:
-        - BearerAuth: []
-      tags:
-        - Resources
-      responses:
-        "200":
-          description: Total credits retrieved successfully
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      total_credits:
-                        type: integer
-                        example: 10000
-        "401":
-          description: Unauthorized - Missing or invalid authentication token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /getAllVoices:
-    get:
-      summary: Get all available voices
-      description: |
-        Retrieves a list of all available ElevenLabs voices stored in the system.
-        No authentication is required for this endpoint.
-      operationId: getAllVoices
-      tags:
-        - Resources
-      responses:
-        "200":
-          description: A list of voices
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      voices:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            voice_id:
-                              type: string
-                              example: "21m00Tcm4TlvDq8ikWAM"
-                            name:
-                              type: string
-                              example: "Rachel"
-                            category:
-                              type: string
-                              example: "premade"
-                            preview_url:
-                              type: string
-                              format: uri
-                              example: "https://storage.googleapis.com/eleven-public-prod/premade/voices/21m00Tcm4TlvDq8ikWAM/df6788f9-5c96-470d-8312-a63e8586a635.mp3"
-                            description:
-                              type: string
-                              example: "Calm and soothing voice."
-                            labels:
-                              type: object
-                            fine_tuning:
-                              type: object
-                            verified_languages:
-                              type: array
-                              items:
-                                type: object
-
   /signUp:
     post:
       summary: Register a new user
@@ -704,219 +427,6 @@ paths:
                 status: error
                 message: Failed to logout
 
-  /confirmPassword:
-    post:
-      summary: Confirm user password
-      description: |
-        Verifies if the provided password matches the authenticated user's current password.
-
-        **Requires:** JWT Bearer token in Authorization header
-
-        This endpoint is useful for re-authentication before performing sensitive operations.
-      operationId: confirmPassword
-      tags:
-        - Authentication
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - password
-              properties:
-                password:
-                  type: string
-                  format: password
-                  description: User's current password to verify
-            example:
-              password: SecurePass123!
-      responses:
-        "200":
-          description: Password confirmed successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-              example:
-                status: success
-                message: Password confirmed successfully
-        "400":
-          description: Bad request - Password not provided
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: password is required
-        "401":
-          description: Unauthorized - Incorrect password or invalid token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                incorrectPassword:
-                  value:
-                    status: error
-                    message: Incorrect password
-                invalidToken:
-                  value:
-                    status: error
-                    message: Invalid or expired token
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /changeEmail:
-    post:
-      summary: Change user email
-      description: |
-        Initiates an email change process for the authenticated user.
-
-        **Effects:**
-        - Sends a confirmation email to the *new* email address.
-        - The user must click the link in the new email to confirm the change.
-
-        **Requires:** JWT Bearer token in Authorization header.
-      operationId: changeEmail
-      tags:
-        - Authentication
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - email
-              properties:
-                email:
-                  type: string
-                  format: email
-                  description: The new email address
-            example:
-              email: new-email@example.com
-      responses:
-        "200":
-          description: Confirmation email sent
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-              example:
-                status: success
-                message: Confirmation link has been sent to your new email address. Please confirm to complete the change.
-        "400":
-          description: Bad request (Invalid email or already registered)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: Forbidden - 2FA is enabled
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: Please disable 2FA before changing your email.
-
-  /deactivateAccount:
-    post:
-      summary: Deactivate account or organization
-      description: |
-        Deactivates the user's account or entire organization.
-
-        **If organization owner:** Deactivates entire organization and all members.
-        **If non-owner:** Deactivates only the caller's account.
-      operationId: deactivateAccount
-      tags:
-        - Authentication
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      responses:
-        "200":
-          description: Account/Organization deactivated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /refreshToken:
-    post:
-      summary: Refresh access token
-      description: |
-        Obtains a new access token using a valid refresh token.
-        Returns new access token and refresh token.
-
-        **Note:** This endpoint uses the refresh token from the request body, not the Authorization header.
-      operationId: refreshToken
-      tags:
-        - Authentication
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - refreshToken
-              properties:
-                refreshToken:
-                  type: string
-                  example: xYz123RefreshToken456...
-      responses:
-        "200":
-          description: Token refreshed successfully
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      token:
-                        type: string
-                        description: New JWT access token
-                      refreshToken:
-                        type: string
-                        description: New refresh token
-                      expiresIn:
-                        type: integer
-                        description: Token expiration time in seconds
-              example:
-                status: success
-                message: Token refreshed successfully
-                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                refreshToken: aBc456NewRefreshToken789...
-                expiresIn: 3600
-        "401":
-          description: Unauthorized - Invalid or expired refresh token
-          content:
   /loginWithGoogle:
     post:
       summary: Login with Google OAuth
@@ -1028,6 +538,128 @@ paths:
                 url: "https://accounts.google.com/o/oauth2/v2/auth?..."
         "500":
           description: Failed to generate OAuth URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /refreshToken:
+    post:
+      summary: Refresh access token
+      description: |
+        Obtains a new access token using a valid refresh token.
+        Returns new access token and refresh token.
+
+        **Note:** This endpoint uses the refresh token from the request body, not the Authorization header.
+      operationId: refreshToken
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: xYz123RefreshToken456...
+      responses:
+        "200":
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      token:
+                        type: string
+                        description: New JWT access token
+                      refreshToken:
+                        type: string
+                        description: New refresh token
+                      expiresIn:
+                        type: integer
+                        description: Token expiration time in seconds
+              example:
+                status: success
+                message: Token refreshed successfully
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: aBc456NewRefreshToken789...
+                expiresIn: 3600
+        "401":
+          description: Unauthorized - Invalid or expired refresh token
+          content:
+  /confirmPassword:
+    post:
+      summary: Confirm user password
+      description: |
+        Verifies if the provided password matches the authenticated user's current password.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        This endpoint is useful for re-authentication before performing sensitive operations.
+      operationId: confirmPassword
+      tags:
+        - Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+                  description: User's current password to verify
+            example:
+              password: SecurePass123!
+      responses:
+        "200":
+          description: Password confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Password confirmed successfully
+        "400":
+          description: Bad request - Password not provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: password is required
+        "401":
+          description: Unauthorized - Incorrect password or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                incorrectPassword:
+                  value:
+                    status: error
+                    message: Incorrect password
+                invalidToken:
+                  value:
+                    status: error
+                    message: Invalid or expired token
+        "500":
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -1214,305 +846,6 @@ paths:
                 status: error
                 message: Invalid or expired access token. Please request a new password reset link.
 
-  /getAllIndustries:
-    get:
-      summary: Get all industries
-      description: |
-        Retrieves a list of all available industries for book publishing professionals.
-
-        This endpoint is public and does not require authentication.
-      operationId: getAllIndustries
-      tags:
-        - Settings Management
-      responses:
-        "200":
-          description: Industries fetched successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  message:
-                    type: string
-                  industries:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          format: uuid
-                        industry_name:
-                          type: string
-              example:
-                status: success
-                message: Industries fetched successfully
-                industries:
-                  - id: 550e8400-e29b-41d4-a716-446655440000
-                    industry_name: Academic Publishing
-                  - id: 660e8400-e29b-41d4-a716-446655440001
-                    industry_name: Fiction & Literature
-
-  /getUserProfile:
-    get:
-      summary: Get user profile
-      description: |
-        Retrieves the authenticated user's complete profile including industry and profile picture.
-
-        **Requires:** JWT Bearer token in Authorization header
-      operationId: getUserProfile
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      responses:
-        "200":
-          description: Profile fetched successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  message:
-                    type: string
-                  profile:
-                    type: object
-                    properties:
-                      full_name:
-                        type: string
-                      email:
-                        type: string
-                      phone:
-                        type: string
-                        nullable: true
-                      publisher_name:
-                        type: string
-                        nullable: true
-                      role:
-                        type: string
-                        nullable: true
-                      industry:
-                        type: object
-                        nullable: true
-                        properties:
-                          id:
-                            type: string
-                            format: uuid
-                          industry_name:
-                            type: string
-                      profile_picture:
-                        type: object
-                        nullable: true
-                        properties:
-                          id:
-                            type: string
-                            format: uuid
-                          url:
-                            type: string
-                            format: uri
-                      auth_type:
-                        type: string
-                        description: Authentication provider name (e.g. email, google)
-              example:
-                status: success
-                message: Profile fetched successfully
-                profile:
-                  full_name: John Doe
-                  email: john@example.com
-                  phone: "+1234567890"
-                  publisher_name: ABC Publishers
-                  role: Editor
-                  industry:
-                    id: 550e8400-e29b-41d4-a716-446655440000
-                    industry_name: Academic Publishing
-                  auth_type: email
-                  profile_picture:
-                    id: 660e8400-e29b-41d4-a716-446655440000
-                    url: https://example.com/profile.jpg
-        "401":
-          description: Unauthorized - Missing or invalid JWT token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: User profile not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /updateUserProfile:
-    put:
-      summary: Update user profile
-      description: |
-        Updates the authenticated user's profile information.
-
-        **Requires:** JWT Bearer token in Authorization header
-
-        **File Upload:** Supports multipart/form-data for profile picture upload.
-
-        **Note:** If a profile picture is uploaded, any existing profile picture will be deleted from storage.
-      operationId: updateUserProfile
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                full_name:
-                  type: string
-                  description: User's full name
-                phone:
-                  type: string
-                  description: Phone number
-                publisher_name:
-                  type: string
-                  description: Publisher name
-                role:
-                  type: string
-                  description: Job title/role
-                industry_id:
-                  type: string
-                  format: uuid
-                  description: Industry ID from /getAllIndustries
-                profile_picture:
-                  type: string
-                  format: binary
-                  description: Profile picture image file
-          application/json:
-            schema:
-              type: object
-              properties:
-                full_name:
-                  type: string
-                phone:
-                  type: string
-                publisher_name:
-                  type: string
-                role:
-                  type: string
-                industry_id:
-                  type: string
-                  format: uuid
-      responses:
-        "200":
-          description: Profile updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  message:
-                    type: string
-                  profile:
-                    type: object
-                    properties:
-                      full_name:
-                        type: string
-                      email:
-                        type: string
-                      phone:
-                        type: string
-                      publisher_name:
-                        type: string
-                      role:
-                        type: string
-                      industry:
-                        type: object
-                        nullable: true
-                      profile_picture:
-                        type: object
-                        nullable: true
-              example:
-                status: success
-                message: Profile updated successfully
-                profile:
-                  full_name: John Doe
-                  email: john@example.com
-                  phone: "+1234567890"
-                  publisher_name: ABC Publishers
-                  role: Senior Editor
-                  industry:
-                    id: 550e8400-e29b-41d4-a716-446655440000
-                    industry_name: Academic Publishing
-                  profile_picture:
-                    id: 660e8400-e29b-41d4-a716-446655440000
-                    url: https://example.com/new-profile.jpg
-        "401":
-          description: Unauthorized - Missing or invalid JWT token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /removeProfilePicture:
-    post:
-      summary: Remove Profile Picture
-      operationId: removeProfilePicture
-      tags:
-        - Settings Management
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - profile_picture_id
-              properties:
-                profile_picture_id:
-                  type: string
-                  format: uuid
-                  description: The ID of the profile picture to remove
-      responses:
-        "200":
-          description: Profile picture removed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: Profile picture removed successfully
-        "400":
-          description: Bad Request
-        "401":
-          description: Unauthorized
-        "403":
-          description: Forbidden - Not owner or admin
-        "404":
-          description: Profile picture not found
-        "500":
-          description: Internal Server Error
-
   /changePassword:
     post:
       summary: Change user password
@@ -1589,373 +922,20 @@ paths:
                 status: error
                 message: Old password is incorrect
 
-  /getOrganizationCopyright:
+  /changeEmail:
     post:
-      summary: Get organization copyright text
+      summary: Change user email
       description: |
-        Gets the authenticated user's organization copyright text.
+        Initiates an email change process for the authenticated user.
 
-        **Requires:** JWT Bearer token in Authorization header
+        **Effects:**
+        - Sends a confirmation email to the *new* email address.
+        - The user must click the link in the new email to confirm the change.
+
+        **Requires:** JWT Bearer token in Authorization header.
+      operationId: changeEmail
       tags:
-        - Organization Copyright Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                organization_id:
-                  type: string
-                  format: uuid
-              required:
-                - organization_id
-      responses:
-        "200":
-          description: Copyrights fetched successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: Copyrights fetched successfully
-                  data:
-                    type: object
-                    properties:
-                      copyrights_text:
-                        type: string
-                      updated_at:
-                        type: string
-                        format: date-time
-        "403":
-          description: Unauthorized
-        "404":
-          description: Organization or User not found
-  /setOrganizationCopyright:
-    post:
-      summary: Set (Upsert) organization copyright text
-      description: |
-        Sets (Upserts) the authenticated user's organization copyright text.
-
-        **Requires:** JWT Bearer token in Authorization header
-      tags:
-        - Organization Copyright Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                organization_id:
-                  type: string
-                  format: uuid
-                copyrights_text:
-                  type: string
-                  example: "© 2026 Example Corporation. All rights reserved. No part of this software, documentation, or related materials may be reproduced, distributed, or transmitted in any form or by any means without prior written permission from Example Corporation."
-              required:
-                - organization_id
-                - copyrights_text
-      responses:
-        "200":
-          description: Copyright created or updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: Copyright updated successfully
-                  data:
-                    type: object
-                    properties:
-                      copyrights_text:
-                        type: string
-                      created_at:
-                        type: string
-                        format: date-time
-                      updated_at:
-                        type: string
-                        format: date-time
-        "403":
-          description: Unauthorized
-        "404":
-          description: Organization or User not found
-  /getOrganization:
-    get:
-      summary: Get user's organization
-      description: |
-        Retrieves the authenticated user's organization details.
-
-        **Requires:** JWT Bearer token in Authorization header
-      operationId: getOrganization
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      responses:
-        "200":
-          description: Organization fetched successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  message:
-                    type: string
-                  organization:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        format: uuid
-                      ownerId:
-                        type: string
-                        format: uuid
-                      memberIds:
-                        type: array
-                        items:
-                          type: string
-                          format: uuid
-                      createdAt:
-                        type: string
-                        format: date-time
-                      updatedAt:
-                        type: string
-                        format: date-time
-              example:
-                status: success
-                message: Organization fetched successfully
-                organization:
-                  id: 660e8400-e29b-41d4-a716-446655440001
-                  ownerId: e2cad916-38c3-488e-9e11-fb20f0380f16
-                  memberIds: ["550e8400-e29b-41d4-a716-446655440000"]
-                  createdAt: "2026-01-14T00:00:00Z"
-                  updatedAt: "2026-01-14T00:00:00Z"
-        "404":
-          description: Organization not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: User is not part of any organization
-
-  /getAllOrganizationMembers:
-    get:
-      summary: Get all organization members
-      description: |
-        Retrieves complete details of all members in the authenticated user's organization, including the owner.
-
-        **Requires:** JWT Bearer token in Authorization header
-
-        **Returns:**
-        - Full user details including profile pictures and industry information
-        - `createdBy`: Information about who created each member (id, name, email, profilePicture)
-        - `lastActive`: Timestamp of the member's last login
-      operationId: getAllOrganizationMembers
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      responses:
-        "200":
-          description: Organization members fetched successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  message:
-                    type: string
-                  members:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          format: uuid
-                        fullName:
-                          type: string
-                        email:
-                          type: string
-                        phone:
-                          type: string
-                          nullable: true
-                        publisherName:
-                          type: string
-                          nullable: true
-                        userType:
-                          type: string
-                          enum: [ADMIN, OWNER, MEMBER]
-                        role:
-                          type: string
-                          nullable: true
-                        industry:
-                          type: object
-                          nullable: true
-                          properties:
-                            id:
-                              type: string
-                              format: uuid
-                            industryName:
-                              type: string
-                        profilePicture:
-                          type: object
-                          nullable: true
-                          properties:
-                            id:
-                              type: string
-                              format: uuid
-                            url:
-                              type: string
-                        isOwner:
-                          type: boolean
-                        createdAt:
-                          type: string
-                          format: date-time
-                        createdBy:
-                          type: object
-                          nullable: true
-                          description: Information about the user who created this member
-                          properties:
-                            id:
-                              type: string
-                              format: uuid
-                            name:
-                              type: string
-                            email:
-                              type: string
-                            profilePicture:
-                              type: object
-                              nullable: true
-                              properties:
-                                id:
-                                  type: string
-                                  format: uuid
-                                url:
-                                  type: string
-                        lastActive:
-                          type: string
-                          format: date-time
-                          nullable: true
-                          description: Timestamp of the user's last login
-                        addedOn:
-                          type: string
-                          format: date-time
-                          nullable: true
-                          description: Timestamp when the user was created (from auth table)
-                        status:
-                          type: string
-                          enum: [Active, Invited, Expired, Inactive]
-                          description: |
-                            User account status:
-                            - Invited: User has not logged in yet and invite link is valid (< 1 hour old)
-                            - Active: User has logged in at least once
-                            - Expired: User has not logged in and invite link has expired (> 1 hour old)
-                            - Inactive: User account has been manually deactivated by an admin
-                  totalMembers:
-                    type: integer
-              example:
-                status: success
-                message: Organization members fetched successfully
-                members:
-                  - id: e2cad916-38c3-488e-9e11-fb20f0380f16
-                    fullName: John Doe
-                    email: john@example.com
-                    phone: "+1234567890"
-                    publisherName: Acme Publishing
-                    userType: OWNER
-                    role: CEO
-                    industry:
-                      id: 8ed98054-6dfe-4383-bd35-9a822b8f06c3
-                      industryName: Academic Publishing
-                    profilePicture:
-                      id: abc123
-                      url: https://example.com/pic.jpg
-                    isOwner: true
-                    createdAt: "2026-01-14T00:00:00Z"
-                    createdBy:
-                      id: e2cad916-38c3-488e-9e11-fb20f0380f16
-                      name: John Doe
-                      email: john@example.com
-                      profilePicture:
-                        id: abc123
-                        url: https://example.com/pic.jpg
-                    lastActive: "2026-01-15T23:14:35Z"
-                    addedOn: "2026-01-10T10:30:00Z"
-                    status: Active
-                  - id: 550e8400-e29b-41d4-a716-446655440000
-                    fullName: Jane Smith
-                    email: jane@example.com
-                    phone: null
-                    publisherName: null
-                    userType: MEMBER
-                    role: Editor
-                    industry: null
-                    profilePicture: null
-                    isOwner: false
-                    createdAt: "2026-01-14T00:00:00Z"
-                    createdBy:
-                      id: e2cad916-38c3-488e-9e11-fb20f0380f16
-                      name: John Doe
-                      email: john@example.com
-                      profilePicture:
-                        id: abc123
-                        url: https://example.com/pic.jpg
-                    lastActive: null
-                    addedOn: "2026-01-14T14:22:15Z"
-                    status: Invited
-                totalMembers: 2
-        "404":
-          description: Organization not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /createUser:
-    post:
-      summary: Create users in organization
-      description: |
-        Creates one or more new users and adds them to the requesting user's organization.
-
-        **Requires:** JWT Bearer token in Authorization header
-
-        **Authorization Rules:**
-        - Only ADMIN and OWNER can create users
-        - New users are added to the same organization as the creating user
-        - Password reset email is sent to each new user to set their password and full name
-
-        **Note:** Users will set their full name when they first set their password via the `/setNewPassword` endpoint.
-      operationId: createUser
-      tags:
-        - Settings Management
+        - Authentication
       security:
         - SupabaseAuth: []
           BearerAuth: []
@@ -1966,470 +946,55 @@ paths:
             schema:
               type: object
               required:
-                - emails
-                - role
+                - email
               properties:
-                emails:
-                  type: array
-                  items:
-                    type: string
-                    format: email
-                  description: Array of email addresses for the new users
-                  minItems: 1
-                role:
+                email:
                   type: string
-                  enum: [ADMIN, OWNER, MEMBER]
-                  description: Role for all new users
+                  format: email
+                  description: The new email address
             example:
-              emails:
-                - newuser@example.com
-                - newuser2@example.com
-              role: MEMBER
+              email: new-email@example.com
       responses:
-        "201":
-          description: Users created successfully
+        "200":
+          description: Confirmation email sent
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  message:
-                    type: string
-                  users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          format: uuid
-                        email:
-                          type: string
-                        userType:
-                          type: string
-                        organizationId:
-                          type: string
-                          format: uuid
-                  failed:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        email:
-                          type: string
-                        reason:
-                          type: string
-                    description: List of failed user creations (only present if there are failures)
+                $ref: "#/components/schemas/SuccessResponse"
               example:
                 status: success
-                message: "2 user(s) created successfully. 0 failed."
-                users:
-                  - id: 550e8400-e29b-41d4-a716-446655440000
-                    email: newuser@example.com
-                    userType: MEMBER
-                    organizationId: 660e8400-e29b-41d4-a716-446655440001
-                  - id: 550e8400-e29b-41d4-a716-446655440002
-                    email: newuser2@example.com
-                    userType: MEMBER
-                    organizationId: 660e8400-e29b-41d4-a716-446655440001
+                message: Confirmation link has been sent to your new email address. Please confirm to complete the change.
         "400":
-          description: Bad request - Invalid input
+          description: Bad request (Invalid email or already registered)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: Forbidden - Insufficient permissions
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: Only ADMIN and OWNER can create users
-
-  /deleteUser:
-    delete:
-      summary: Delete user from organization
-      description: |
-        Deletes a user from the organization.
-
-        **Requires:** JWT Bearer token in Authorization header
-
-        **Deletion Rules:**
-        - Cannot delete yourself
-        - Cannot delete the organization owner
-        - MEMBER cannot delete anyone
-        - OWNER cannot delete ADMIN
-        - MEMBER cannot delete OWNER or ADMIN
-      operationId: deleteUser
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - user_id
-              properties:
-                user_id:
-                  type: string
-                  format: uuid
-                  description: ID of the user to delete
-            example:
-              user_id: 550e8400-e29b-41d4-a716-446655440000
-      responses:
-        "200":
-          description: User deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-              example:
-                status: success
-                message: User deleted successfully
-        "403":
-          description: Forbidden - Insufficient permissions or deletion not allowed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                cannotDeleteSelf:
-                  value:
-                    status: error
-                    message: You cannot delete yourself
-                cannotDeleteOwner:
-                  value:
-                    status: error
-                    message: The organization owner cannot be deleted
-                ownerCannotDeleteAdmin:
-                  value:
-                    status: error
-                    message: Owners cannot delete Admins
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /markUserAsActive:
-    post:
-      summary: Mark user as active
-      description: |
-        Marks an inactive user as active, allowing them to log in again.
-
-        **Authorization Rules:**
-        - Only ADMIN and OWNER can mark users as active
-        - OWNER cannot mark ADMIN users as active
-        - MEMBER cannot mark anyone as active
-        - Can only mark users within the same organization
-      operationId: markUserAsActive
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [userId]
-              properties:
-                userId:
-                  type: string
-                  format: uuid
-            example:
-              userId: 550e8400-e29b-41d4-a716-446655440000
-      responses:
-        "200":
-          description: User marked as active
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /markUserAsInactive:
-    post:
-      summary: Mark user as inactive
-      description: Marks a user inactive, preventing login.
-      operationId: markUserAsInactive
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [userId]
-              properties:
-                userId:
-                  type: string
-                  format: uuid
-      responses:
-        "200":
-          description: User marked as inactive
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /resendInvite:
-    post:
-      summary: Resend invitation to user
-      description: |
-        Resends an invitation to a user who has not yet accepted their invite.
-
-        **Mechanism:**
-        - Checks if user is in "Invited" or "Expired" state (never logged in).
-        - **Deletes** the existing user account (Auth and DB).
-        - **Re-creates** the user account with the same email and role.
-        - Sends a new password reset (invitation) email.
-
-        **Requires:** ADMIN or OWNER role.
-      operationId: resendInvite
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - user_id
-              properties:
-                user_id:
-                  type: string
-                  format: uuid
-                  description: ID of the user to re-invite
-      responses:
-        "200":
-          description: Invitation resent successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-        "400":
-          description: Bad request (User already active, invalid ID)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: Forbidden (Insufficient permissions)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /getCreditsCost:
-    get:
-      summary: Get credits pricing
-      description: |
-        Retrieves the current pricing for credits from the credits_pricing table.
-
-        **Requires:** JWT Bearer token in Authorization header
-      operationId: getCreditsCost
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      responses:
-        "200":
-          description: Credits pricing fetched successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  message:
-                    type: string
-                  pricing:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        format: uuid
-                      pricePerCredit:
-                        type: number
-                        format: decimal
-                        description: Price per credit in USD
-                      createdAt:
-                        type: string
-                        format: date-time
-                      updatedAt:
-                        type: string
-                        format: date-time
-              example:
-                status: success
-                message: Credits pricing fetched successfully
-                pricing:
-                  id: 550e8400-e29b-41d4-a716-446655440000
-                  pricePerCredit: 0.10
-                  createdAt: "2026-01-15T00:00:00Z"
-                  updatedAt: "2026-01-15T00:00:00Z"
         "401":
-          description: Unauthorized - Invalid or missing JWT token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /changeUserType:
-    post:
-      summary: Change user type/role
-      description: |
-        Changes the userType (role) of a user in the organization.
-
-        **Requires:** JWT Bearer token in Authorization header
-
-        **Authorization Rules:**
-        - Members cannot change anyone's userType
-        - Owners cannot change Admin userTypes
-        - Organization owner cannot change their own userType
-        - Can only change userType for users in the same organization
-      operationId: changeUserType
-      tags:
-        - Settings Management
-      security:
-        - SupabaseAuth: []
-          BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - id
-                - userType
-              properties:
-                id:
-                  type: string
-                  format: uuid
-                  description: ID of the user whose type to change
-                userType:
-                  type: string
-                  enum: [ADMIN, MEMBER, OWNER]
-                  description: New user type/role
-            example:
-              id: 550e8400-e29b-41d4-a716-446655440000
-              userType: ADMIN
-      responses:
-        "200":
-          description: User type changed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [success]
-                  message:
-                    type: string
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        format: uuid
-                      userType:
-                        type: string
-                        enum: [ADMIN, MEMBER, OWNER]
-              example:
-                status: success
-                message: User type updated successfully
-                user:
-                  id: 550e8400-e29b-41d4-a716-446655440000
-                  userType: ADMIN
-        "400":
-          description: Bad request - Invalid input
+          description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: Forbidden - Insufficient permissions
+          description: Forbidden - 2FA is enabled
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                memberCannotChange:
-                  value:
-                    status: error
-                    message: Members cannot change user types
-                ownerCannotChangeAdmin:
-                  value:
-                    status: error
-                    message: Owners cannot change Admin user types
-                cannotChangeOwnType:
-                  value:
-                    status: error
-                    message: Organization owner cannot change their own userType
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Please disable 2FA before changing your email.
 
-  /deleteAdmin:
-    delete:
-      summary: Delete own account
+  /deactivateAccount:
+    post:
+      summary: Deactivate account or organization
       description: |
-        Permanently deletes the authenticated user's account and all associated data.
+        Deactivates the user's account or entire organization.
 
-        **Requires:** JWT Bearer token in Authorization header
-
-        **This action will delete:**
-        - User's auth account
-        - User's profile data
-        - User's profile picture (storage and database)
-        - User's organization
-        - **All members in the user's organization** (their auth, profiles, and profile pictures)
-
-        **Warning:** This action is irreversible and will delete the entire organization!
-      operationId: deleteAdmin
+        **If organization owner:** Deactivates entire organization and all members.
+        **If non-owner:** Deactivates only the caller's account.
+      operationId: deactivateAccount
       tags:
         - Authentication
       security:
@@ -2437,27 +1002,17 @@ paths:
           BearerAuth: []
       responses:
         "200":
-          description: Account deleted successfully
+          description: Account/Organization deactivated successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
-              example:
-                status: success
-                message: Account deleted successfully
-        "401":
-          description: Unauthorized - Invalid or missing JWT token
+        "403":
+          description: Forbidden
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /get2FAStatus:
     get:
       summary: Get 2FA status
@@ -3063,6 +1618,1069 @@ paths:
         "500":
           description: Internal Server Error
 
+  /getUserProfile:
+    get:
+      summary: Get user profile
+      description: |
+        Retrieves the authenticated user's complete profile including industry and profile picture.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: getUserProfile
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Profile fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  profile:
+                    type: object
+                    properties:
+                      full_name:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                        nullable: true
+                      publisher_name:
+                        type: string
+                        nullable: true
+                      role:
+                        type: string
+                        nullable: true
+                      industry:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          industry_name:
+                            type: string
+                      profile_picture:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          url:
+                            type: string
+                            format: uri
+                      auth_type:
+                        type: string
+                        description: Authentication provider name (e.g. email, google)
+              example:
+                status: success
+                message: Profile fetched successfully
+                profile:
+                  full_name: John Doe
+                  email: john@example.com
+                  phone: "+1234567890"
+                  publisher_name: ABC Publishers
+                  role: Editor
+                  industry:
+                    id: 550e8400-e29b-41d4-a716-446655440000
+                    industry_name: Academic Publishing
+                  auth_type: email
+                  profile_picture:
+                    id: 660e8400-e29b-41d4-a716-446655440000
+                    url: https://example.com/profile.jpg
+        "401":
+          description: Unauthorized - Missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /updateUserProfile:
+    put:
+      summary: Update user profile
+      description: |
+        Updates the authenticated user's profile information.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **File Upload:** Supports multipart/form-data for profile picture upload.
+
+        **Note:** If a profile picture is uploaded, any existing profile picture will be deleted from storage.
+      operationId: updateUserProfile
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                  description: User's full name
+                phone:
+                  type: string
+                  description: Phone number
+                publisher_name:
+                  type: string
+                  description: Publisher name
+                role:
+                  type: string
+                  description: Job title/role
+                industry_id:
+                  type: string
+                  format: uuid
+                  description: Industry ID from /getAllIndustries
+                profile_picture:
+                  type: string
+                  format: binary
+                  description: Profile picture image file
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                phone:
+                  type: string
+                publisher_name:
+                  type: string
+                role:
+                  type: string
+                industry_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  profile:
+                    type: object
+                    properties:
+                      full_name:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      publisher_name:
+                        type: string
+                      role:
+                        type: string
+                      industry:
+                        type: object
+                        nullable: true
+                      profile_picture:
+                        type: object
+                        nullable: true
+              example:
+                status: success
+                message: Profile updated successfully
+                profile:
+                  full_name: John Doe
+                  email: john@example.com
+                  phone: "+1234567890"
+                  publisher_name: ABC Publishers
+                  role: Senior Editor
+                  industry:
+                    id: 550e8400-e29b-41d4-a716-446655440000
+                    industry_name: Academic Publishing
+                  profile_picture:
+                    id: 660e8400-e29b-41d4-a716-446655440000
+                    url: https://example.com/new-profile.jpg
+        "401":
+          description: Unauthorized - Missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /removeProfilePicture:
+    post:
+      summary: Remove Profile Picture
+      operationId: removeProfilePicture
+      tags:
+        - Settings Management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - profile_picture_id
+              properties:
+                profile_picture_id:
+                  type: string
+                  format: uuid
+                  description: The ID of the profile picture to remove
+      responses:
+        "200":
+          description: Profile picture removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Profile picture removed successfully
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not owner or admin
+        "404":
+          description: Profile picture not found
+        "500":
+          description: Internal Server Error
+
+  /createUser:
+    post:
+      summary: Create users in organization
+      description: |
+        Creates one or more new users and adds them to the requesting user's organization.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Authorization Rules:**
+        - Only ADMIN and OWNER can create users
+        - New users are added to the same organization as the creating user
+        - Password reset email is sent to each new user to set their password and full name
+
+        **Note:** Users will set their full name when they first set their password via the `/setNewPassword` endpoint.
+      operationId: createUser
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - emails
+                - role
+              properties:
+                emails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: Array of email addresses for the new users
+                  minItems: 1
+                role:
+                  type: string
+                  enum: [ADMIN, OWNER, MEMBER]
+                  description: Role for all new users
+            example:
+              emails:
+                - newuser@example.com
+                - newuser2@example.com
+              role: MEMBER
+      responses:
+        "201":
+          description: Users created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        email:
+                          type: string
+                        userType:
+                          type: string
+                        organizationId:
+                          type: string
+                          format: uuid
+                  failed:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        email:
+                          type: string
+                        reason:
+                          type: string
+                    description: List of failed user creations (only present if there are failures)
+              example:
+                status: success
+                message: "2 user(s) created successfully. 0 failed."
+                users:
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    email: newuser@example.com
+                    userType: MEMBER
+                    organizationId: 660e8400-e29b-41d4-a716-446655440001
+                  - id: 550e8400-e29b-41d4-a716-446655440002
+                    email: newuser2@example.com
+                    userType: MEMBER
+                    organizationId: 660e8400-e29b-41d4-a716-446655440001
+        "400":
+          description: Bad request - Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Only ADMIN and OWNER can create users
+
+  /changeUserType:
+    post:
+      summary: Change user type/role
+      description: |
+        Changes the userType (role) of a user in the organization.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Authorization Rules:**
+        - Members cannot change anyone's userType
+        - Owners cannot change Admin userTypes
+        - Organization owner cannot change their own userType
+        - Can only change userType for users in the same organization
+      operationId: changeUserType
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - userType
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: ID of the user whose type to change
+                userType:
+                  type: string
+                  enum: [ADMIN, MEMBER, OWNER]
+                  description: New user type/role
+            example:
+              id: 550e8400-e29b-41d4-a716-446655440000
+              userType: ADMIN
+      responses:
+        "200":
+          description: User type changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      userType:
+                        type: string
+                        enum: [ADMIN, MEMBER, OWNER]
+              example:
+                status: success
+                message: User type updated successfully
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  userType: ADMIN
+        "400":
+          description: Bad request - Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                memberCannotChange:
+                  value:
+                    status: error
+                    message: Members cannot change user types
+                ownerCannotChangeAdmin:
+                  value:
+                    status: error
+                    message: Owners cannot change Admin user types
+                cannotChangeOwnType:
+                  value:
+                    status: error
+                    message: Organization owner cannot change their own userType
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deleteUser:
+    delete:
+      summary: Delete user from organization
+      description: |
+        Deletes a user from the organization.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Deletion Rules:**
+        - Cannot delete yourself
+        - Cannot delete the organization owner
+        - MEMBER cannot delete anyone
+        - OWNER cannot delete ADMIN
+        - MEMBER cannot delete OWNER or ADMIN
+      operationId: deleteUser
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                  description: ID of the user to delete
+            example:
+              user_id: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        "200":
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: User deleted successfully
+        "403":
+          description: Forbidden - Insufficient permissions or deletion not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                cannotDeleteSelf:
+                  value:
+                    status: error
+                    message: You cannot delete yourself
+                cannotDeleteOwner:
+                  value:
+                    status: error
+                    message: The organization owner cannot be deleted
+                ownerCannotDeleteAdmin:
+                  value:
+                    status: error
+                    message: Owners cannot delete Admins
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deleteAdmin:
+    delete:
+      summary: Delete own account
+      description: |
+        Permanently deletes the authenticated user's account and all associated data.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **This action will delete:**
+        - User's auth account
+        - User's profile data
+        - User's profile picture (storage and database)
+        - User's organization
+        - **All members in the user's organization** (their auth, profiles, and profile pictures)
+
+        **Warning:** This action is irreversible and will delete the entire organization!
+      operationId: deleteAdmin
+      tags:
+        - Authentication
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Account deleted successfully
+        "401":
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /markUserAsActive:
+    post:
+      summary: Mark user as active
+      description: |
+        Marks an inactive user as active, allowing them to log in again.
+
+        **Authorization Rules:**
+        - Only ADMIN and OWNER can mark users as active
+        - OWNER cannot mark ADMIN users as active
+        - MEMBER cannot mark anyone as active
+        - Can only mark users within the same organization
+      operationId: markUserAsActive
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+            example:
+              userId: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        "200":
+          description: User marked as active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /markUserAsInactive:
+    post:
+      summary: Mark user as inactive
+      description: Marks a user inactive, preventing login.
+      operationId: markUserAsInactive
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: User marked as inactive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /resendInvite:
+    post:
+      summary: Resend invitation to user
+      description: |
+        Resends an invitation to a user who has not yet accepted their invite.
+
+        **Mechanism:**
+        - Checks if user is in "Invited" or "Expired" state (never logged in).
+        - **Deletes** the existing user account (Auth and DB).
+        - **Re-creates** the user account with the same email and role.
+        - Sends a new password reset (invitation) email.
+
+        **Requires:** ADMIN or OWNER role.
+      operationId: resendInvite
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                  description: ID of the user to re-invite
+      responses:
+        "200":
+          description: Invitation resent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad request (User already active, invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (Insufficient permissions)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /getAllOrganizationMembers:
+    get:
+      summary: Get all organization members
+      description: |
+        Retrieves complete details of all members in the authenticated user's organization, including the owner.
+
+        **Requires:** JWT Bearer token in Authorization header
+
+        **Returns:**
+        - Full user details including profile pictures and industry information
+        - `createdBy`: Information about who created each member (id, name, email, profilePicture)
+        - `lastActive`: Timestamp of the member's last login
+      operationId: getAllOrganizationMembers
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Organization members fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        fullName:
+                          type: string
+                        email:
+                          type: string
+                        phone:
+                          type: string
+                          nullable: true
+                        publisherName:
+                          type: string
+                          nullable: true
+                        userType:
+                          type: string
+                          enum: [ADMIN, OWNER, MEMBER]
+                        role:
+                          type: string
+                          nullable: true
+                        industry:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            industryName:
+                              type: string
+                        profilePicture:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            url:
+                              type: string
+                        isOwner:
+                          type: boolean
+                        createdAt:
+                          type: string
+                          format: date-time
+                        createdBy:
+                          type: object
+                          nullable: true
+                          description: Information about the user who created this member
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            name:
+                              type: string
+                            email:
+                              type: string
+                            profilePicture:
+                              type: object
+                              nullable: true
+                              properties:
+                                id:
+                                  type: string
+                                  format: uuid
+                                url:
+                                  type: string
+                        lastActive:
+                          type: string
+                          format: date-time
+                          nullable: true
+                          description: Timestamp of the user's last login
+                        addedOn:
+                          type: string
+                          format: date-time
+                          nullable: true
+                          description: Timestamp when the user was created (from auth table)
+                        status:
+                          type: string
+                          enum: [Active, Invited, Expired, Inactive]
+                          description: |
+                            User account status:
+                            - Invited: User has not logged in yet and invite link is valid (< 1 hour old)
+                            - Active: User has logged in at least once
+                            - Expired: User has not logged in and invite link has expired (> 1 hour old)
+                            - Inactive: User account has been manually deactivated by an admin
+                  totalMembers:
+                    type: integer
+              example:
+                status: success
+                message: Organization members fetched successfully
+                members:
+                  - id: e2cad916-38c3-488e-9e11-fb20f0380f16
+                    fullName: John Doe
+                    email: john@example.com
+                    phone: "+1234567890"
+                    publisherName: Acme Publishing
+                    userType: OWNER
+                    role: CEO
+                    industry:
+                      id: 8ed98054-6dfe-4383-bd35-9a822b8f06c3
+                      industryName: Academic Publishing
+                    profilePicture:
+                      id: abc123
+                      url: https://example.com/pic.jpg
+                    isOwner: true
+                    createdAt: "2026-01-14T00:00:00Z"
+                    createdBy:
+                      id: e2cad916-38c3-488e-9e11-fb20f0380f16
+                      name: John Doe
+                      email: john@example.com
+                      profilePicture:
+                        id: abc123
+                        url: https://example.com/pic.jpg
+                    lastActive: "2026-01-15T23:14:35Z"
+                    addedOn: "2026-01-10T10:30:00Z"
+                    status: Active
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    fullName: Jane Smith
+                    email: jane@example.com
+                    phone: null
+                    publisherName: null
+                    userType: MEMBER
+                    role: Editor
+                    industry: null
+                    profilePicture: null
+                    isOwner: false
+                    createdAt: "2026-01-14T00:00:00Z"
+                    createdBy:
+                      id: e2cad916-38c3-488e-9e11-fb20f0380f16
+                      name: John Doe
+                      email: john@example.com
+                      profilePicture:
+                        id: abc123
+                        url: https://example.com/pic.jpg
+                    lastActive: null
+                    addedOn: "2026-01-14T14:22:15Z"
+                    status: Invited
+                totalMembers: 2
+        "404":
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getOrganization:
+    get:
+      summary: Get user's organization
+      description: |
+        Retrieves the authenticated user's organization details.
+
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: getOrganization
+      tags:
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Organization fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      ownerId:
+                        type: string
+                        format: uuid
+                      memberIds:
+                        type: array
+                        items:
+                          type: string
+                          format: uuid
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+              example:
+                status: success
+                message: Organization fetched successfully
+                organization:
+                  id: 660e8400-e29b-41d4-a716-446655440001
+                  ownerId: e2cad916-38c3-488e-9e11-fb20f0380f16
+                  memberIds: ["550e8400-e29b-41d4-a716-446655440000"]
+                  createdAt: "2026-01-14T00:00:00Z"
+                  updatedAt: "2026-01-14T00:00:00Z"
+        "404":
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: User is not part of any organization
+
+  /getOrganizationCopyright:
+    post:
+      summary: Get organization copyright text
+      description: |
+        Gets the authenticated user's organization copyright text.
+
+        **Requires:** JWT Bearer token in Authorization header
+      tags:
+        - Organization Copyright Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organization_id:
+                  type: string
+                  format: uuid
+              required:
+                - organization_id
+      responses:
+        "200":
+          description: Copyrights fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Copyrights fetched successfully
+                  data:
+                    type: object
+                    properties:
+                      copyrights_text:
+                        type: string
+                      updated_at:
+                        type: string
+                        format: date-time
+        "403":
+          description: Unauthorized
+        "404":
+          description: Organization or User not found
+  /setOrganizationCopyright:
+    post:
+      summary: Set (Upsert) organization copyright text
+      description: |
+        Sets (Upserts) the authenticated user's organization copyright text.
+
+        **Requires:** JWT Bearer token in Authorization header
+      tags:
+        - Organization Copyright Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organization_id:
+                  type: string
+                  format: uuid
+                copyrights_text:
+                  type: string
+                  example: "© 2026 Example Corporation. All rights reserved. No part of this software, documentation, or related materials may be reproduced, distributed, or transmitted in any form or by any means without prior written permission from Example Corporation."
+              required:
+                - organization_id
+                - copyrights_text
+      responses:
+        "200":
+          description: Copyright created or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Copyright updated successfully
+                  data:
+                    type: object
+                    properties:
+                      copyrights_text:
+                        type: string
+                      created_at:
+                        type: string
+                        format: date-time
+                      updated_at:
+                        type: string
+                        format: date-time
+        "403":
+          description: Unauthorized
+        "404":
+          description: Organization or User not found
   /addPaymentMethod:
     post:
       summary: Add a new payment method
@@ -3531,58 +3149,62 @@ paths:
                   processingTimeMs:
                     type: integer
 
-  /flushDatabase:
-    post:
-      summary: Flush entire database (ADMIN ONLY)
+  /getCreditsCost:
+    get:
+      summary: Get credits pricing
       description: |
-        **DANGER: This permanently deletes ALL data from the database.**
+        Retrieves the current pricing for credits from the credits_pricing table.
 
-        Requires admin password. Deletes all entries from:
-        - auth.users (Supabase Auth)
-        - users table
-        - organizations table
-        - copyrights table
-        - profile_pictures table and storage bucket
-        - industries table
-
-        **Does NOT delete:** credits_pricing table
-      operationId: flushDatabase
+        **Requires:** JWT Bearer token in Authorization header
+      operationId: getCreditsCost
       tags:
-        - Backend ADMIN Controls
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - password
-              properties:
-                password:
-                  type: string
-                  format: password
-                  description: Admin password to authorize flush operation
-            example:
-              password: "your-admin-password"
+        - Settings Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
       responses:
         "200":
-          description: Database flushed successfully
+          description: Credits pricing fetched successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  pricing:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      pricePerCredit:
+                        type: number
+                        format: decimal
+                        description: Price per credit in USD
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
               example:
                 status: success
-                message: Database flushed successfully
-        "403":
-          description: Invalid admin password
+                message: Credits pricing fetched successfully
+                pricing:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  pricePerCredit: 0.10
+                  createdAt: "2026-01-15T00:00:00Z"
+                  updatedAt: "2026-01-15T00:00:00Z"
+        "401":
+          description: Unauthorized - Invalid or missing JWT token
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: Invalid admin password
         "500":
           description: Internal server error
           content:
@@ -3590,20 +3212,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /getAllGenres:
+  /getTotalCredits:
     get:
-      summary: Get all genres
+      summary: Get total available credits for usage
       description: |
-        Retrieves a list of all available book genres.
-      operationId: getAllGenres
-      tags:
-        - Audiobook Management
+        Returns the total credits available to the user.
+        Credits are shared within an organization, so this returns the organization owner's credit balance.
+
+        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
+      operationId: getTotalCredits
       security:
-        - SupabaseAuth: []
-          BearerAuth: []
+        - BearerAuth: []
+      tags:
+        - Resources
       responses:
         "200":
-          description: Genres retrieved successfully
+          description: Total credits retrieved successfully
           content:
             application/json:
               schema:
@@ -3611,20 +3235,11 @@ paths:
                   - $ref: "#/components/schemas/SuccessResponse"
                   - type: object
                     properties:
-                      genres:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Genre"
-              example:
-                status: success
-                message: Genres retrieved successfully
-                genres:
-                  - id: "unique-uuid-1"
-                    genreName: "Fiction"
-                  - id: "unique-uuid-2"
-                    genreName: "Mystery"
-        "500":
-          description: Internal server error
+                      total_credits:
+                        type: integer
+                        example: 10000
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
           content:
             application/json:
               schema:
@@ -3832,3 +3447,578 @@ tags:
     description: Organization Copyright management endpoints
   - name: Audiobook Management
     description: APIs for managing audiobook project data (genres, etc.)
+  /getAllGenres:
+    get:
+      summary: Get all genres
+      description: |
+        Retrieves a list of all available book genres.
+      operationId: getAllGenres
+      tags:
+        - Audiobook Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      responses:
+        "200":
+          description: Genres retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      genres:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Genre"
+              example:
+                status: success
+                message: Genres retrieved successfully
+                genres:
+                  - id: "unique-uuid-1"
+                    genreName: "Fiction"
+                  - id: "unique-uuid-2"
+                    genreName: "Mystery"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getAllVoices:
+    get:
+      summary: Get all available voices
+      description: |
+        Retrieves a list of all available ElevenLabs voices stored in the system.
+        No authentication is required for this endpoint.
+      operationId: getAllVoices
+      tags:
+        - Resources
+      responses:
+        "200":
+          description: A list of voices
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      voices:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            voice_id:
+                              type: string
+                              example: "21m00Tcm4TlvDq8ikWAM"
+                            name:
+                              type: string
+                              example: "Rachel"
+                            category:
+                              type: string
+                              example: "premade"
+                            preview_url:
+                              type: string
+                              format: uri
+                              example: "https://storage.googleapis.com/eleven-public-prod/premade/voices/21m00Tcm4TlvDq8ikWAM/df6788f9-5c96-470d-8312-a63e8586a635.mp3"
+                            description:
+                              type: string
+                              example: "Calm and soothing voice."
+                            labels:
+                              type: object
+                            fine_tuning:
+                              type: object
+                            verified_languages:
+                              type: array
+                              items:
+                                type: object
+
+  /getAllIndustries:
+    get:
+      summary: Get all industries
+      description: |
+        Retrieves a list of all available industries for book publishing professionals.
+
+        This endpoint is public and does not require authentication.
+      operationId: getAllIndustries
+      tags:
+        - Settings Management
+      responses:
+        "200":
+          description: Industries fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  industries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        industry_name:
+                          type: string
+              example:
+                status: success
+                message: Industries fetched successfully
+                industries:
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    industry_name: Academic Publishing
+                  - id: 660e8400-e29b-41d4-a716-446655440001
+                    industry_name: Fiction & Literature
+
+  /getGallery:
+    get:
+      summary: Get gallery by project or studio ID
+      description: |
+        Retrieves the full gallery object for a given project_id or studio_id.
+        The function checks both the `projects` and `studio` tables for the provided ID,
+        then returns the associated gallery.
+
+        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
+      operationId: getGallery
+      security:
+        - BearerAuth: []
+      tags:
+        - Resources
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The project_id (UUID) or studio_id (string) to look up the gallery for
+      responses:
+        "200":
+          description: Gallery retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      gallery:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          name:
+                            type: string
+                          files:
+                            type: array
+                            description: Array of file objects in the gallery
+        "400":
+          description: Bad Request - Missing or invalid id parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - No gallery found for the provided id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /uploadFileToGallery:
+    post:
+      summary: Upload a file to a gallery
+      description: |
+        Uploads a file to the storage bucket and adds it to a gallery's files array.
+        The file type is validated before upload (PDF, audio formats, Word docs, EPUB, text files).
+
+        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
+      operationId: uploadFileToGallery
+      security:
+        - BearerAuth: []
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - gallery_id
+                - file
+              properties:
+                gallery_id:
+                  type: string
+                  format: uuid
+                  description: The UUID of the gallery to upload the file to
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload (PDF, MP3, WAV, AAC, OGG, FLAC, DOC, DOCX, EPUB, TXT, MD)
+      responses:
+        "200":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      file:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          url:
+                            type: string
+        "400":
+          description: Bad Request - Missing required fields or unsupported file type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - Gallery not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error - Failed to upload file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deleteFileFromGallery:
+    delete:
+      summary: Delete a file from gallery and storage
+      description: |
+        Deletes a file from both the storage bucket and the gallery JSONB array.
+        The function searches all galleries to find the file, deletes it from the `files` bucket,
+        and removes it from the gallery's files array.
+
+        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
+      operationId: deleteFileFromGallery
+      security:
+        - BearerAuth: []
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: The UUID of the file to delete
+                  example: "38d80a10-2cec-4359-93cf-4319d0d7778b"
+      responses:
+        "200":
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad Request - Missing or invalid id parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - File not found in any gallery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error - Failed to delete file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /createComment:
+    post:
+      summary: Create a new comment on a studio block
+      operationId: createComment
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - block_id
+                - text
+              properties:
+                studio_id:
+                  type: string
+                block_id:
+                  type: string
+                text:
+                  type: string
+      responses:
+        "201":
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      comment:
+                        $ref: "#/components/schemas/Comment"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getAllComments:
+    get:
+      summary: Get all comments for a studio or block
+      operationId: getAllComments
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      parameters:
+        - name: studio_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: block_id
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Comments retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      comments:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Comment"
+                      count:
+                        type: integer
+        "404":
+          description: Studio not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getComment:
+    get:
+      summary: Get a specific comment by ID
+      operationId: getComment
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      parameters:
+        - name: studio_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: comment_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Comment retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      comment:
+                        $ref: "#/components/schemas/Comment"
+        "404":
+          description: Comment or studio not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /toggleCommentResolution:
+    post:
+      summary: Toggle the resolved status of a comment
+      description: |
+        Toggles the resolved status of a comment between true and false.
+        
+        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
+      operationId: toggleCommentResolution
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - comment_id
+              properties:
+                studio_id:
+                  type: string
+                  description: The ID of the studio
+                comment_id:
+                  type: string
+                  format: uuid
+                  description: The ID of the comment to toggle
+      responses:
+        "200":
+          description: Comment resolution toggled successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      comment:
+                        $ref: "#/components/schemas/Comment"
+        "400":
+          description: Bad Request - Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Comment or studio not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /flushDatabase:
+    post:
+      summary: Flush entire database (ADMIN ONLY)
+      description: |
+        **DANGER: This permanently deletes ALL data from the database.**
+
+        Requires admin password. Deletes all entries from:
+        - auth.users (Supabase Auth)
+        - users table
+        - organizations table
+        - copyrights table
+        - profile_pictures table and storage bucket
+        - industries table
+
+        **Does NOT delete:** credits_pricing table
+      operationId: flushDatabase
+      tags:
+        - Backend ADMIN Controls
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+                  description: Admin password to authorize flush operation
+            example:
+              password: "your-admin-password"
+      responses:
+        "200":
+          description: Database flushed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Database flushed successfully
+        "403":
+          description: Invalid admin password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Invalid admin password
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
