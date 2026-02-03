@@ -3440,7 +3440,7 @@ paths:
         - Studio record
         - Gallery records
         - Files in storage buckets (cover_images and files)
-        
+
         **Authorization**: Only the project owner can delete the project.
       operationId: deleteProjectById
       tags:
@@ -3529,7 +3529,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
 
   /getAllGenres:
     get:
@@ -3904,7 +3903,7 @@ paths:
   /deleteComment:
     delete:
       summary: Delete a comment from a studio block
-      description: |\
+      description: |
         Deletes a comment from a studio block. Only the user who created the comment can delete it.
       operationId: deleteComment
       security:
@@ -3973,7 +3972,6 @@ paths:
                   value:
                     status: error
                     message: Comment not found
-
 
   /editComment:
     put:
@@ -4072,9 +4070,6 @@ paths:
                   value:
                     status: error
                     message: Comment not found
-
-
-
 
   /getAllComments:
     get:
