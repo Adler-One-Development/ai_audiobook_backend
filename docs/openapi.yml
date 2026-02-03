@@ -196,7 +196,11 @@ paths:
       description: |
         Returns the total credits available to the user.
         Credits are shared within an organization, so this returns the organization owner's credit balance.
+
+        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
       operationId: getTotalCredits
+      security:
+        - BearerAuth: []
       tags:
         - Resources
       responses:
@@ -212,6 +216,12 @@ paths:
                       total_credits:
                         type: integer
                         example: 10000
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /getAllVoices:
     get:
