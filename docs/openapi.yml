@@ -190,6 +190,29 @@ components:
         - message
 
 paths:
+  /getTotalCredits:
+    get:
+      summary: Get total available credits for usage
+      description: |
+        Returns the total credits available to the user.
+        Credits are shared within an organization, so this returns the organization owner's credit balance.
+      operationId: getTotalCredits
+      tags:
+        - Resources
+      responses:
+        "200":
+          description: Total credits retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      total_credits:
+                        type: integer
+                        example: 10000
+
   /getAllVoices:
     get:
       summary: Get all available voices
