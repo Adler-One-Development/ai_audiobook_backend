@@ -48,13 +48,46 @@ Deno.serve(async (req) => {
             );
         }
 
+        // Update chapters_and_pages for each project based on studio chapter count
+        const updatedProjects = await Promise.all(
+            (projects || []).map(async (project) => {
+                if (project.studio_id) {
+                    // Fetch studio to get chapter count
+                    const { data: studio } = await adminClient
+                        .from("studio")
+                        .select("chapter_ids")
+                        .eq("id", project.studio_id)
+                        .single();
+
+                    if (studio && studio.chapter_ids) {
+                        const chapterCount = Array.isArray(studio.chapter_ids)
+                            ? studio.chapter_ids.length
+                            : 0;
+                        const chaptersText = `${chapterCount} Chapter${
+                            chapterCount !== 1 ? "s" : ""
+                        }`;
+
+                        // Update the project's chapters_and_pages field
+                        await adminClient
+                            .from("projects")
+                            .update({ chapters_and_pages: chaptersText })
+                            .eq("id", project.id);
+
+                        // Update the returned project object
+                        project.chapters_and_pages = chaptersText;
+                    }
+                }
+                return project;
+            }),
+        );
+
         const total = count || 0;
         const totalPages = Math.ceil(total / limit);
 
         return successResponse({
             status: "success",
             message: "Projects retrieved successfully",
-            data: projects,
+            data: updatedProjects,
             meta: {
                 total,
                 page,

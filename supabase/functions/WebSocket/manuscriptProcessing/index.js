@@ -366,10 +366,22 @@ async function processProjectCreation(ws, data) {
     try {
         const { project_id, access_token, supabase_anon_key, eleven_labs_api_key, voice_id, open_ai_api_key } = data;
 
+        // Update project status to 'Processing'
+        const SUPABASE_URL = "https://hskaqvjruqzmgrwxmxxd.supabase.co";
+        await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${project_id}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': supabase_anon_key,
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ status: 'Processing' })
+        });
+
         ws.send(JSON.stringify({ status: 'processing', message: 'Preparing your project...' }));
 
         // Fetch project using user's access token
-        const SUPABASE_URL = "https://hskaqvjruqzmgrwxmxxd.supabase.co";
         const getProjectUrl = `${SUPABASE_URL}/functions/v1/getProjectById?id=${project_id}`;
         
         const projectResponse = await fetch(getProjectUrl, {
@@ -646,6 +658,18 @@ async function processProjectCreation(ws, data) {
         if (!projectUpdateResponse.ok) {
              throw new Error(`Failed to update project: ${await projectUpdateResponse.text()}`);
         }
+
+        // Update project status to 'InProgress'
+        await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${project_id}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': supabase_anon_key,
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ status: 'InProgress' })
+        });
 
         ws.send(JSON.stringify({ 
             status: 'completed', 
