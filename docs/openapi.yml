@@ -3432,21 +3432,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-tags:
-  - name: Authentication
-    description: User authentication and account management endpoints
-  - name: Settings Management
-    description: User profile and settings management endpoints
-  - name: Multi-Factor Authentication
-    description: 2FA enrollment and verification endpoints
-  - name: Payment Management
-    description: Payment methods and billing history management endpoints
-  - name: Backend ADMIN Controls
-    description: Administrative endpoints for backend management (DANGEROUS - requires admin password)
-  - name: Organization Copyright Management
-    description: Organization Copyright management endpoints
-  - name: Audiobook Management
-    description: APIs for managing audiobook project data (genres, etc.)
   /getAllGenres:
     get:
       summary: Get all genres
@@ -3902,7 +3887,7 @@ tags:
       summary: Toggle the resolved status of a comment
       description: |
         Toggles the resolved status of a comment between true and false.
-        
+
         **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
       operationId: toggleCommentResolution
       security:
@@ -4022,3 +4007,18 @@ tags:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+tags:
+  - name: Authentication
+    description: User authentication and account management endpoints
+  - name: Settings Management
+    description: User profile and settings management endpoints
+  - name: Multi-Factor Authentication
+    description: 2FA enrollment and verification endpoints
+  - name: Payment Management
+    description: Payment methods and billing history management endpoints
+  - name: Backend ADMIN Controls
+    description: Administrative endpoints for backend management (DANGEROUS - requires admin password)
+  - name: Organization Copyright Management
+    description: Organization Copyright management endpoints
+  - name: Audiobook Management
+    description: APIs for managing audiobook project data (genres, etc.)
