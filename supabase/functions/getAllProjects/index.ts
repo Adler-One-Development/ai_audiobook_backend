@@ -55,13 +55,13 @@ Deno.serve(async (req) => {
                     // Fetch studio to get chapter count
                     const { data: studio } = await adminClient
                         .from("studio")
-                        .select("chapter_ids")
+                        .select("chapters")
                         .eq("id", project.studio_id)
                         .single();
 
-                    if (studio && studio.chapter_ids) {
-                        const chapterCount = Array.isArray(studio.chapter_ids)
-                            ? studio.chapter_ids.length
+                    if (studio && studio.chapters) {
+                        const chapterCount = Array.isArray(studio.chapters)
+                            ? studio.chapters.length
                             : 0;
                         const chaptersText = `${chapterCount} Chapter${
                             chapterCount !== 1 ? "s" : ""
