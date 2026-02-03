@@ -210,8 +210,7 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
-          description: The project_id or studio_id to look up the gallery for
+          description: The project_id (UUID) or studio_id (string) to look up the gallery for
       responses:
         "200":
           description: Gallery retrieved successfully
@@ -247,6 +246,140 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Not Found - No gallery found for the provided id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deleteFileFromGallery:
+    delete:
+      summary: Delete a file from gallery and storage
+      description: |
+        Deletes a file from both the storage bucket and the gallery JSONB array.
+        The function searches all galleries to find the file, deletes it from the `files` bucket,
+        and removes it from the gallery's files array.
+
+        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
+      operationId: deleteFileFromGallery
+      security:
+        - BearerAuth: []
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: The UUID of the file to delete
+                  example: "38d80a10-2cec-4359-93cf-4319d0d7778b"
+      responses:
+        "200":
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad Request - Missing or invalid id parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - File not found in any gallery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error - Failed to delete file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /uploadFileToGallery:
+    post:
+      summary: Upload a file to a gallery
+      description: |
+        Uploads a file to the storage bucket and adds it to a gallery's files array.
+        The file type is validated before upload (PDF, audio formats, Word docs, EPUB, text files).
+
+        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
+      operationId: uploadFileToGallery
+      security:
+        - BearerAuth: []
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - gallery_id
+                - file
+              properties:
+                gallery_id:
+                  type: string
+                  format: uuid
+                  description: The UUID of the gallery to upload the file to
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload (PDF, MP3, WAV, AAC, OGG, FLAC, DOC, DOCX, EPUB, TXT, MD)
+      responses:
+        "200":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      file:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          url:
+                            type: string
+        "400":
+          description: Bad Request - Missing required fields or unsupported file type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - Gallery not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error - Failed to upload file
           content:
             application/json:
               schema:
