@@ -190,6 +190,68 @@ components:
         - message
 
 paths:
+  /getGallery:
+    get:
+      summary: Get gallery by project or studio ID
+      description: |
+        Retrieves the full gallery object for a given project_id or studio_id.
+        The function checks both the `projects` and `studio` tables for the provided ID,
+        then returns the associated gallery.
+
+        **Authentication Required**: This endpoint requires a valid JWT access token in the Authorization header.
+      operationId: getGallery
+      security:
+        - BearerAuth: []
+      tags:
+        - Resources
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The project_id or studio_id to look up the gallery for
+      responses:
+        "200":
+          description: Gallery retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      gallery:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          name:
+                            type: string
+                          files:
+                            type: array
+                            description: Array of file objects in the gallery
+        "400":
+          description: Bad Request - Missing or invalid id parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - No gallery found for the provided id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /getTotalCredits:
     get:
       summary: Get total available credits for usage
