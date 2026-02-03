@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
             status: 204,
             headers: {
                 "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Methods": "PUT, OPTIONS",
                 "Access-Control-Allow-Headers":
                     "authorization, x-client-info, apikey, content-type",
             },
@@ -54,15 +54,15 @@ Deno.serve(async (req) => {
         }
 
         // Parse request body
-        const { studio_id, block_id, text } = await req.json();
+        const { studio_id, comment_id, text } = await req.json();
 
         // Validate request body
-        if (!studio_id || !block_id || !text) {
+        if (!studio_id || !comment_id || !text) {
             return new Response(
                 JSON.stringify({
                     status: "error",
                     message:
-                        "Missing required fields: studio_id, block_id, text",
+                        "Missing required fields: studio_id, comment_id, text",
                 }),
                 { status: 400, headers: corsHeaders },
             );
@@ -82,28 +82,10 @@ Deno.serve(async (req) => {
         const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-        // Get user details from users table
-        const { data: userData, error: userDataError } = await adminClient
-            .from("users")
-            .select("full_name")
-            .eq("id", user.id)
-            .single();
-
-        if (userDataError) {
-            console.error("Error fetching user data:", userDataError);
-            return new Response(
-                JSON.stringify({
-                    status: "error",
-                    message: "Failed to fetch user details",
-                }),
-                { status: 500, headers: corsHeaders },
-            );
-        }
-
         // Fetch studio by studio_id
         const { data: studio, error: studioError } = await adminClient
             .from("studio")
-            .select("id, chapters, comments")
+            .select("id, comments")
             .eq("id", studio_id)
             .single();
 
@@ -117,54 +99,48 @@ Deno.serve(async (req) => {
             );
         }
 
-        // Validate block_id exists in studio chapters
-        let blockExists = false;
-        if (Array.isArray(studio.chapters)) {
-            for (const chapter of studio.chapters) {
-                if (chapter.content_json?.blocks) {
-                    for (const block of chapter.content_json.blocks) {
-                        if (block.block_id === block_id) {
-                            blockExists = true;
-                            break;
-                        }
-                    }
-                    if (blockExists) break;
-                }
-            }
-        }
-
-        if (!blockExists) {
-            return new Response(
-                JSON.stringify({
-                    status: "error",
-                    message:
-                        `Block ID '${block_id}' not found in studio chapters`,
-                }),
-                { status: 400, headers: corsHeaders },
-            );
-        }
-
-        // Create comment object
-        const comment = {
-            id: crypto.randomUUID(),
-            user_id: user.id,
-            user_name: userData.full_name || user.email || "Unknown User",
-            text: text.trim(),
-            timestamp: new Date().toISOString(),
-            block_id: block_id,
-            resolved: false,
-        };
-
-        // Append comment to studio.comments array
+        // Check if comments array exists and find the comment
         const currentComments = Array.isArray(studio.comments)
             ? studio.comments
             : [];
-        const updatedComments = [...currentComments, comment];
+
+        const commentIndex = currentComments.findIndex(
+            (comment: { id: string }) => comment.id === comment_id,
+        );
+
+        if (commentIndex === -1) {
+            return new Response(
+                JSON.stringify({
+                    status: "error",
+                    message: "Comment not found",
+                }),
+                { status: 404, headers: corsHeaders },
+            );
+        }
+
+        // Check if the user is authorized to edit this comment
+        const comment = currentComments[commentIndex];
+        if (comment.user_id !== user.id) {
+            return new Response(
+                JSON.stringify({
+                    status: "error",
+                    message: "Unauthorized to edit this comment",
+                }),
+                { status: 403, headers: corsHeaders },
+            );
+        }
+
+        // Update the comment text
+        currentComments[commentIndex] = {
+            ...comment,
+            text: text.trim(),
+            timestamp: new Date().toISOString(), // Update timestamp to reflect edit
+        };
 
         // Update studio record
         const { error: updateError } = await adminClient
             .from("studio")
-            .update({ comments: updatedComments })
+            .update({ comments: currentComments })
             .eq("id", studio_id);
 
         if (updateError) {
@@ -172,23 +148,23 @@ Deno.serve(async (req) => {
             return new Response(
                 JSON.stringify({
                     status: "error",
-                    message: "Failed to create comment",
+                    message: "Failed to update comment",
                 }),
                 { status: 500, headers: corsHeaders },
             );
         }
 
-        // Return created comment
+        // Return updated comment
         return new Response(
             JSON.stringify({
                 status: "success",
-                message: "Comment created successfully",
-                comment: comment,
+                message: "Comment updated successfully",
+                comment: currentComments[commentIndex],
             }),
-            { status: 201, headers: corsHeaders },
+            { status: 200, headers: corsHeaders },
         );
     } catch (error) {
-        console.error("Error in createComment:", error);
+        console.error("Error in editComment:", error);
         return new Response(
             JSON.stringify({
                 status: "error",

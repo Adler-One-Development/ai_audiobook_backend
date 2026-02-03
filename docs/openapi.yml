@@ -3432,6 +3432,105 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /deleteProjectById:
+    delete:
+      summary: Delete a project by ID
+      description: |
+        Deletes a project and all its associated resources including:
+        - Studio record
+        - Gallery records
+        - Files in storage buckets (cover_images and files)
+        
+        **Authorization**: Only the project owner can delete the project.
+      operationId: deleteProjectById
+      tags:
+        - Audiobook Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: UUID of the project to delete
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        "200":
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      deleted:
+                        type: object
+                        properties:
+                          project:
+                            type: string
+                            format: uuid
+                            description: ID of the deleted project
+                          studio:
+                            type: string
+                            format: uuid
+                            nullable: true
+                            description: ID of the deleted studio
+                          galleries:
+                            type: array
+                            items:
+                              type: string
+                              format: uuid
+                            description: IDs of deleted gallery records
+                          files:
+                            type: integer
+                            description: Number of files deleted from storage
+              example:
+                status: success
+                message: "Project and associated resources deleted successfully"
+                deleted:
+                  project: "550e8400-e29b-41d4-a716-446655440000"
+                  studio: "660e8400-e29b-41d4-a716-446655440001"
+                  galleries: ["770e8400-e29b-41d4-a716-446655440002"]
+                  files: 3
+        "400":
+          description: Bad Request - Missing project ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: "Missing required parameter: id"
+        "403":
+          description: Forbidden - User is not authorized to delete this project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: "Unauthorized to delete this project"
+        "404":
+          description: Not Found - Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: "Project not found"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+
   /getAllGenres:
     get:
       summary: Get all genres
@@ -3801,6 +3900,181 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /deleteComment:
+    delete:
+      summary: Delete a comment from a studio block
+      description: |\
+        Deletes a comment from a studio block. Only the user who created the comment can delete it.
+      operationId: deleteComment
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - comment_id
+              properties:
+                studio_id:
+                  type: string
+                  description: The ID of the studio containing the comment
+                  example: "4VjB54RZqdmqRjxXrAZl"
+                comment_id:
+                  type: string
+                  format: uuid
+                  description: The UUID of the comment to delete
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        "200":
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: success
+                message: Comment deleted successfully
+        "400":
+          description: Bad Request - Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: "Missing required fields: studio_id, comment_id"
+        "403":
+          description: Forbidden - User is not authorized to delete this comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Unauthorized to delete this comment
+        "404":
+          description: Not Found - Studio or comment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                studioNotFound:
+                  value:
+                    status: error
+                    message: Studio not found
+                commentNotFound:
+                  value:
+                    status: error
+                    message: Comment not found
+
+
+  /editComment:
+    put:
+      summary: Edit a comment on a studio block
+      description: |
+        Updates the text of an existing comment. Only the user who created the comment can edit it.
+        The timestamp will be updated to reflect when the comment was edited.
+      operationId: editComment
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - comment_id
+                - text
+              properties:
+                studio_id:
+                  type: string
+                  description: The ID of the studio containing the comment
+                  example: "4VjB54RZqdmqRjxXrAZl"
+                comment_id:
+                  type: string
+                  format: uuid
+                  description: The UUID of the comment to edit
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                text:
+                  type: string
+                  description: The new comment text
+                  example: "This is my updated comment"
+      responses:
+        "200":
+          description: Comment updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      comment:
+                        $ref: "#/components/schemas/Comment"
+              example:
+                status: success
+                message: Comment updated successfully
+                comment:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  user_id: "3d3f30cf-2e27-4f71-8469-4adfba9b5578"
+                  user_name: "John Doe"
+                  text: "This is my updated comment"
+                  timestamp: "2026-02-04T03:16:00Z"
+                  block_id: "vSoEd0ch3yD4gd1usdJZ"
+                  resolved: false
+        "400":
+          description: Bad Request - Missing fields or empty text
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingFields:
+                  value:
+                    status: error
+                    message: "Missing required fields: studio_id, comment_id, text"
+                emptyText:
+                  value:
+                    status: error
+                    message: "Comment text cannot be empty"
+        "403":
+          description: Forbidden - User is not authorized to edit this comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: Unauthorized to edit this comment
+        "404":
+          description: Not Found - Studio or comment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                studioNotFound:
+                  value:
+                    status: error
+                    message: Studio not found
+                commentNotFound:
+                  value:
+                    status: error
+                    message: Comment not found
+
+
+
 
   /getAllComments:
     get:
