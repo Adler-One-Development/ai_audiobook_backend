@@ -7,6 +7,7 @@ info:
     ## Authentication Methods
     - **SupabaseAuth**: Use your Supabase anon key in the `apikey` header
     - **BearerAuth**: Use JWT access token obtained from login/signup
+    - **ElevenLabsAuth**: Use ElevenLabs API key in the `eleven-labs-api-key` header
 
     ## Base URL (QA Environment)
     `https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1`
@@ -39,6 +40,12 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: JWT access token from login/signup
+
+    ElevenLabsAuth:
+      type: apiKey
+      in: header
+      name: eleven-labs-api-key
+      description: ElevenLabs API key
 
   schemas:
     User:
@@ -188,6 +195,97 @@ components:
       required:
         - status
         - message
+
+    Chapter:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        content_json:
+          type: object
+      required:
+        - id
+        - name
+
+    GetStudioResponse:
+      type: object
+      properties:
+        book:
+          type: object
+        chapters:
+          type: array
+          items:
+            $ref: "#/components/schemas/Chapter"
+        gallery_id:
+          type: string
+          format: uuid
+      required:
+        - book
+        - chapters
+        - gallery_id
+
+    ContentBlock:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentNode"
+        block_id:
+          type: string
+        sub_type:
+          type: string
+        comments:
+          type: array
+          items:
+            type: object
+      required:
+        - nodes
+
+    ChapterSummary:
+      type: object
+      properties:
+        title:
+          type: string
+        chapter_id:
+          type: string
+          format: uuid
+        word_count:
+          type: integer
+          description: Total number of words in the chapter
+        chapterDuration:
+          type: number
+          description: Duration in seconds (placeholder)
+        creditsUsed:
+          type: number
+          description: Credits used (1 credit = 1000 characters)
+        content:
+          type: object
+          properties:
+            blocks:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentBlock"
+      required:
+        - title
+        - chapter_id
+        - word_count
+        - chapterDuration
+        - creditsUsed
+        - content
+
+    GetAllChaptersResponse:
+      type: object
+      properties:
+        chapters:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChapterSummary"
+      required:
+        - chapters
 
 paths:
   /getTotalCredits:
@@ -3580,6 +3678,249 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getStudio:
+    post:
+      summary: Get studio data for a project
+      description: |
+        Retrieves studio information including book details, chapters, and gallery ID.
+        Requires authenticated user with access to the project.
+      operationId: getStudio
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - projectId
+              properties:
+                projectId:
+                  type: string
+                  format: uuid
+                  description: The ID of the project
+      responses:
+        "200":
+          description: Studio retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      studio:
+                        $ref: "#/components/schemas/GetStudioResponse"
+        "400":
+          description: Missing project ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Project or Studio not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getAllChapters:
+    post:
+      summary: Get all chapters with statistics
+      description: |
+        Retrieves all chapters for a project with word count and credit usage statistics.
+        Requires authenticated user with access to the project.
+      operationId: getAllChapters
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - projectId
+              properties:
+                projectId:
+                  type: string
+                  format: uuid
+                  description: The ID of the project
+      responses:
+        "200":
+          description: Chapters retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      chapters:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ChapterSummary"
+        "400":
+          description: Missing project ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Project or Studio not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deleteChapter:
+    post:
+      summary: Delete a chapter
+      description: |
+        Deletes a chapter by calling ElevenLabs API and removing it from the local database.
+        Also removes associated comments.
+        Requires authentication and ElevenLabs API key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: string
+                  format: uuid
+                  description: The ID of the project.
+                chapterId:
+                  type: string
+                  description: The ID of the chapter to delete.
+              required:
+                - projectId
+                - chapterId
+      responses:
+        "200":
+          description: Chapter deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Chapter deleted successfully
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+
+  /renameChapter:
+    post:
+      summary: Rename a chapter
+      description: |
+        Renames a chapter by calling ElevenLabs API and updating the local database.
+        Requires authenticated user with access to the project.
+      operationId: renameChapter
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - projectId
+                - chapterId
+                - newName
+              properties:
+                projectId:
+                  type: string
+                  format: uuid
+                  description: The ID of the project
+                chapterId:
+                  type: string
+                  description: The ID of the chapter to rename
+                newName:
+                  type: string
+                  description: The new name for the chapter
+      responses:
+        "200":
+          description: Chapter renamed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          chapterId:
+                            type: string
+                          newName:
+                            type: string
+        "400":
+          description: Missing parameters or headers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Project or Chapter not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error or ElevenLabs API failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Bad Gateway (ElevenLabs API Error)
           content:
             application/json:
               schema:

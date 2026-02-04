@@ -567,3 +567,23 @@ entrypoint = "./functions/setOrganizationCopyright/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/changeEmail/index.ts"
+
+[functions.getStudio]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getStudio/index.ts"
+
+[functions.getAllChapters]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getAllChapters/index.ts"
+
+[functions.renameChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/renameChapter/index.ts"
+
+[functions.deleteChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/deleteChapter/index.ts"
