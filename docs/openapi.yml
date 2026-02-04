@@ -3378,6 +3378,138 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /searchProjects:
+    get:
+      summary: Search and filter projects
+      description: |
+        Searches and filters projects based on various criteria.
+        Supports text search across title, author, and description fields.
+        Applies same authorization logic as getAllProjects (owner or access_levels).
+      operationId: searchProjects
+      tags:
+        - Audiobook Management
+      security:
+        - SupabaseAuth: []
+          BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search text to match against title, author, or description
+          example: "Harry Potter"
+        - in: query
+          name: genre
+          schema:
+            type: string
+            format: uuid
+          description: Filter by genre ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Processing, InProgress, Completed]
+          description: Filter by project status
+          example: "Completed"
+        - in: query
+          name: duration_min
+          schema:
+            type: string
+          description: Minimum duration (PostgreSQL interval format)
+          example: "00:30:00"
+        - in: query
+          name: duration_max
+          schema:
+            type: string
+          description: Maximum duration (PostgreSQL interval format)
+          example: "02:00:00"
+      responses:
+        "200":
+          description: Projects searched successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Project"
+                      meta:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+                          totalPages:
+                            type: integer
+                      filters:
+                        type: object
+                        properties:
+                          search:
+                            type: string
+                            nullable: true
+                          genre:
+                            type: string
+                            nullable: true
+                          status:
+                            type: string
+                            nullable: true
+                          duration_min:
+                            type: string
+                            nullable: true
+                          duration_max:
+                            type: string
+                            nullable: true
+              example:
+                status: success
+                message: "Projects searched successfully"
+                data: []
+                meta:
+                  total: 0
+                  page: 1
+                  limit: 10
+                  totalPages: 0
+                filters:
+                  search: "fantasy"
+                  genre: "550e8400-e29b-41d4-a716-446655440000"
+                  status: "Completed"
+                  duration_min: null
+                  duration_max: null
+        "400":
+          description: Bad Request - Invalid status value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                message: "Invalid status. Must be one of: Processing, InProgress, Completed"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /getProjectById:
     get:
       summary: Get a specific project by ID
