@@ -3795,6 +3795,71 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /editChapter:
+    post:
+      summary: Edit a chapter
+      description: |
+        Updates the content of a specific chapter by calling ElevenLabs API and syncing with local database.
+        Requires authenticated user with access to the project.
+      operationId: editChapter
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - projectId
+                - chapterId
+                - content
+              properties:
+                projectId:
+                  type: string
+                  format: uuid
+                  description: The ID of the project
+                chapterId:
+                  type: string
+                  description: The ID of the chapter to edit
+                content:
+                  type: object
+                  description: |
+                    The content to update (blocks, nodes).
+                    For new blocks, `block_id` is not required.
+                    `sub_type` is optional but must be one of: p, h1, h2, h3.
+                  example:
+                    blocks:
+                      - nodes:
+                          - type: "tts_node"
+                            text: ""
+                            voice_id: ""
+                        block_id: "" # not required for new blocks but for existing blocks
+                        sub_type: "" # not compulsory but an enum
+      responses:
+        "200":
+          description: Chapter updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      chapter:
+                        $ref: "#/components/schemas/Chapter"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /deleteChapter:
     post:
       summary: Delete a chapter
@@ -3802,6 +3867,12 @@ paths:
         Deletes a chapter by calling ElevenLabs API and removing it from the local database.
         Also removes associated comments.
         Requires authentication and ElevenLabs API key.
+      operationId: deleteChapter
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
       requestBody:
         required: true
         content:
@@ -3841,9 +3912,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
-      security:
-        - BearerAuth: []
-        - ElevenLabsAuth: []
 
   /renameChapter:
     post:

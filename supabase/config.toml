@@ -587,3 +587,8 @@ entrypoint = "./functions/renameChapter/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/deleteChapter/index.ts"
+
+[functions.editChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/editChapter/index.ts"
