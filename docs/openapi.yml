@@ -277,33 +277,6 @@ components:
         - chapters
         - gallery_id
 
-    Comment:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        text:
-          type: string
-        user_id:
-          type: string
-          format: uuid
-        block_id:
-          type: string
-        resolved:
-          type: boolean
-        timestamp:
-          type: string
-          format: date-time
-        user_name:
-          type: string
-      required:
-        - id
-        - text
-        - user_id
-        - block_id
-        - timestamp
-
     ContentBlock:
       type: object
       properties:
@@ -4775,6 +4748,7 @@ paths:
         1. Converts chapter (creates snapshot)
         2. Retrieves latest snapshot
         3. Streams the audio back to client
+        4. (Server-side) Saves the generated audio and uploads it to the project's gallery if a gallery_id is associated with the project.
 
         Requires authenticated user with access to the project.
       operationId: generateAudioForChapter
@@ -4808,10 +4782,37 @@ paths:
         "200":
           description: Audio stream
           content:
-            audio/mpeg:
+            application/json:
               schema:
-                type: string
-                format: binary
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  project_id:
+                    type: string
+                    format: uuid
+                  chapter_id:
+                    type: string
+                  file:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      url:
+                        type: string
+                        format: uri
+              example:
+                status: success
+                message: Audio generated successfully
+                project_id: 550e8400-e29b-41d4-a716-446655440000
+                chapter_id: chapter_123
+                file:
+                  id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  url: https://example.com/audio.mp3
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
