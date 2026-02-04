@@ -144,10 +144,9 @@ function extractChaptersFromText(text) {
 
 /**
  * Splits a long chapter into smaller parts by paragraph boundaries.
- * If individual paragraphs are too long, splits them by sentences.
- * Max chunk size is 4000 characters to stay under ElevenLabs 4800 limit with safety margin.
+ * Max chunk size is 2500 characters to stay well under OpenAI token limits.
  */
-function splitLongChapter(chapter, maxChunkSize = 4000) {
+function splitLongChapter(chapter, maxChunkSize = 2500) {
     const { title, content } = chapter;
     
     // If chapter is small enough, return as-is
@@ -162,40 +161,6 @@ function splitLongChapter(chapter, maxChunkSize = 4000) {
     let currentLength = 0;
     
     for (const para of paragraphs) {
-        // If this single paragraph is too long, split it by sentences
-        if (para.length > maxChunkSize) {
-            // Save current chunk if it has content
-            if (currentChunk.length > 0) {
-                chunks.push(currentChunk.join('\n\n'));
-                currentChunk = [];
-                currentLength = 0;
-            }
-            
-            // Split the long paragraph by sentences
-            const sentences = para.split(/(?<=[.!?])\s+/);
-            let sentenceChunk = [];
-            let sentenceLength = 0;
-            
-            for (const sentence of sentences) {
-                const sentLen = sentence.length + 1; // +1 for space
-                
-                if (sentenceLength + sentLen > maxChunkSize && sentenceChunk.length > 0) {
-                    chunks.push(sentenceChunk.join(' '));
-                    sentenceChunk = [sentence];
-                    sentenceLength = sentLen;
-                } else {
-                    sentenceChunk.push(sentence);
-                    sentenceLength += sentLen;
-                }
-            }
-            
-            // Add remaining sentences as a chunk
-            if (sentenceChunk.length > 0) {
-                chunks.push(sentenceChunk.join(' '));
-            }
-            continue;
-        }
-        
         const paraLength = para.length + 2; // +2 for the \n\n we'll add back
         
         // If adding this paragraph exceeds limit, save current chunk and start new one
@@ -453,7 +418,6 @@ async function processProjectCreation(ws, data) {
         ws.send(JSON.stringify({ status: 'processing', message: 'Processing manuscript...' }));
         
         let manuscriptText;
-        let rawChapters; // Will be populated either from EPUB structure or text extraction
         
         if (fileExt === 'txt' || fileExt === 'text') {
             manuscriptText = fs.readFileSync(tempFilePath, 'utf8');
@@ -469,8 +433,8 @@ async function processProjectCreation(ws, data) {
             const dataBuffer = fs.readFileSync(tempFilePath);
             const pdfData = await pdfParse(dataBuffer);
             manuscriptText = pdfData.text;
-        } else if (fileExt === 'epub') { // ENHANCED: Use native EPUB chapter structure
-            // Extract chapters from EPUB using native structure
+        } else if (fileExt === 'epub') {
+            // Extract text from EPUB
             const epub = new EPub(tempFilePath);
             await new Promise((resolve, reject) => {
                 epub.on('end', resolve);
@@ -478,11 +442,11 @@ async function processProjectCreation(ws, data) {
                 epub.parse();
             });
             
-            // Get all chapters from EPUB structure (preserve titles)
-            const epubChapters = epub.flow;
-            rawChapters = [];
+            // Get all chapters and extract text
+            const chapters = epub.flow;
+            const chapterTexts = [];
             
-            for (const chapter of epubChapters) {
+            for (const chapter of chapters) {
                 const chapterText = await new Promise((resolve, reject) => {
                     epub.getChapterRaw(chapter.id, (error, text) => {
                         if (error) reject(error);
@@ -493,10 +457,10 @@ async function processProjectCreation(ws, data) {
                         }
                     });
                 });
-                const title = chapter.title || `Chapter ${rawChapters.length + 1}`; rawChapters.push({ title: title, content: chapterText });
+                chapterTexts.push(chapterText);
             }
             
-            manuscriptText = null; // Not needed for EPUB - we use rawChapters directly
+            manuscriptText = chapterTexts.join('\n\n');
         } else {
             // Try reading as text for unknown formats
             manuscriptText = fs.readFileSync(tempFilePath, 'utf8');
@@ -504,11 +468,9 @@ async function processProjectCreation(ws, data) {
         
         fs.unlinkSync(tempFilePath);
 
-        // Extract chapters from manuscript (skip for EPUB as it's already done)
-        if (fileExt !== 'epub') {
-            ws.send(JSON.stringify({ status: 'processing', message: 'Detecting chapters...' }));
-            rawChapters = extractChaptersFromText(manuscriptText);
-        }
+        // Extract chapters from manuscript
+        ws.send(JSON.stringify({ status: 'processing', message: 'Detecting chapters...' }));
+        const rawChapters = extractChaptersFromText(manuscriptText);
         console.log(`Found ${rawChapters.length} chapter(s)`);
         
         // Split long chapters into manageable parts

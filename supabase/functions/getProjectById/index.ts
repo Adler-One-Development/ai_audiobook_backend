@@ -42,6 +42,33 @@ Deno.serve(async (req) => {
             return errorResponse("Failed to fetch project", 500);
         }
 
+        // Update chapters_and_pages based on studio chapter count
+        if (project.studio_id) {
+            const { data: studio } = await adminClient
+                .from("studio")
+                .select("chapters")
+                .eq("id", project.studio_id)
+                .single();
+
+            if (studio && studio.chapters) {
+                const chapterCount = Array.isArray(studio.chapters)
+                    ? studio.chapters.length
+                    : 0;
+                const chaptersText = `${chapterCount} Chapter${
+                    chapterCount !== 1 ? "s" : ""
+                }`;
+
+                // Update the project's chapters_and_pages field
+                await adminClient
+                    .from("projects")
+                    .update({ chapters_and_pages: chaptersText })
+                    .eq("id", project.id);
+
+                // Update the returned project object
+                project.chapters_and_pages = chaptersText;
+            }
+        }
+
         return successResponse({
             status: "success",
             message: "Project retrieved successfully",

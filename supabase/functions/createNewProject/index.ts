@@ -65,6 +65,60 @@ Deno.serve(async (req) => {
             return errorResponse("Invalid genre_id", 400);
         }
 
+        // Validate manuscript file type
+        const allowedMimeTypes = [
+            // PDF
+            "application/pdf",
+            // Audio formats
+            "audio/mpeg", // MP3
+            "audio/mp3",
+            "audio/wav",
+            "audio/wave",
+            "audio/x-wav",
+            "audio/aac",
+            "audio/ogg",
+            "audio/flac",
+            // Word documents
+            "application/msword", // DOC
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
+            // EPUB
+            "application/epub+zip",
+            // Text files
+            "text/plain",
+            "text/markdown",
+        ];
+
+        const allowedExtensions = [
+            "pdf",
+            "mp3",
+            "wav",
+            "aac",
+            "ogg",
+            "flac",
+            "doc",
+            "docx",
+            "epub",
+            "txt",
+            "md",
+        ];
+
+        const manuscriptFileType = manuscriptFile.type;
+        const manuscriptFileName = manuscriptFile.name.toLowerCase();
+        const fileExtension = manuscriptFileName.split(".").pop() || "";
+
+        // Check MIME type or file extension
+        const isValidMimeType = allowedMimeTypes.includes(manuscriptFileType);
+        const isValidExtension = allowedExtensions.includes(fileExtension);
+
+        if (!isValidMimeType && !isValidExtension) {
+            return errorResponse(
+                `Unsupported file type. Allowed formats: PDF, MP3, WAV, AAC, OGG, FLAC, DOC, DOCX, EPUB, TXT, MD. Received: ${
+                    manuscriptFileType || fileExtension
+                }`,
+                400,
+            );
+        }
+
         // Upload files
         let coverImageUrl = "";
         let coverImageId = "";

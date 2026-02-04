@@ -18,32 +18,71 @@ Deno.serve(async (req) => {
 
         const adminClient = createAdminClient();
 
-        // Query projects where user is owner OR user's ID is in access_levels
-        // Note: access_levels is UUID[], so we use the 'cs' (contains) operator.
-        // But since we want OR condition across columns, it's slightly complex with simple Supabase filters.
-        // It's easier to use .or() syntax.
-
-        // Parse pagination params
+        // Parse query parameters
         const url = new URL(req.url);
         const page = parseInt(url.searchParams.get("page") || "1");
         const limit = parseInt(url.searchParams.get("limit") || "10");
+        const search = url.searchParams.get("search")?.trim() || "";
+        const genreId = url.searchParams.get("genre")?.trim() || "";
+        const status = url.searchParams.get("status")?.trim() || "";
+        const durationMin = url.searchParams.get("duration_min")?.trim() || "";
+        const durationMax = url.searchParams.get("duration_max")?.trim() || "";
+
         const from = (page - 1) * limit;
         const to = from + limit - 1;
 
-        const { data: projects, count, error: projectsError } =
-            await adminClient
-                .from("projects")
-                .select("*, gallery:galleries(*), genre:genres(*)", {
-                    count: "exact",
-                })
-                .or(`owner_id.eq.${user.id},access_levels.cs.{${user.id}}`)
-                .range(from, to)
-                .order("created_at", { ascending: false });
+        // Build the query
+        let query = adminClient
+            .from("projects")
+            .select("*, gallery:galleries(*), genre:genres(*)", {
+                count: "exact",
+            })
+            .or(`owner_id.eq.${user.id},access_levels.cs.{${user.id}}`);
+
+        // Apply search filter (search in title, author, description)
+        if (search) {
+            query = query.or(
+                `book->title.ilike.%${search}%,book->author.ilike.%${search}%,book->description.ilike.%${search}%`,
+            );
+        }
+
+        // Apply genre filter
+        if (genreId) {
+            query = query.eq("genre_id", genreId);
+        }
+
+        // Apply status filter
+        if (status) {
+            const validStatuses = ["Processing", "InProgress", "Completed"];
+            if (validStatuses.includes(status)) {
+                query = query.eq("status", status);
+            } else {
+                return errorResponse(
+                    `Invalid status. Must be one of: ${
+                        validStatuses.join(", ")
+                    }`,
+                    400,
+                );
+            }
+        }
+
+        // Apply duration filters
+        if (durationMin) {
+            query = query.gte("duration", durationMin);
+        }
+        if (durationMax) {
+            query = query.lte("duration", durationMax);
+        }
+
+        // Apply pagination and ordering
+        const { data: projects, count, error: projectsError } = await query
+            .range(from, to)
+            .order("created_at", { ascending: false });
 
         if (projectsError) {
-            console.error("Error fetching projects:", projectsError);
+            console.error("Error searching projects:", projectsError);
             return errorResponse(
-                `Failed to fetch projects: ${JSON.stringify(projectsError)}`,
+                `Failed to search projects: ${JSON.stringify(projectsError)}`,
                 500,
             );
         }
@@ -86,13 +125,20 @@ Deno.serve(async (req) => {
 
         return successResponse({
             status: "success",
-            message: "Projects retrieved successfully",
+            message: "Projects searched successfully",
             data: updatedProjects,
             meta: {
                 total,
                 page,
                 limit,
                 totalPages,
+            },
+            filters: {
+                search: search || null,
+                genre: genreId || null,
+                status: status || null,
+                duration_min: durationMin || null,
+                duration_max: durationMax || null,
             },
         }, 200);
     } catch (error) {
