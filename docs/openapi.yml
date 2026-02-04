@@ -4796,6 +4796,9 @@ paths:
                     format: uuid
                   chapter_id:
                     type: string
+                  credits_used:
+                    type: integer
+                    description: The number of credits deducted for this generation
                   file:
                     type: object
                     properties:
@@ -4810,6 +4813,7 @@ paths:
                 message: Audio generated successfully
                 project_id: 550e8400-e29b-41d4-a716-446655440000
                 chapter_id: chapter_123
+                credits_used: 2
                 file:
                   id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   url: https://example.com/audio.mp3

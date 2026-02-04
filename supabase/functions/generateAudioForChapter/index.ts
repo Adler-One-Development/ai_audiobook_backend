@@ -97,39 +97,15 @@ Deno.serve(async (req) => {
          });
     }
     const characterCount = totalText.length;
-    const creditCost = characterCount / 1000;
+    const creditCost = Math.ceil(characterCount / 1000);
     
-    console.log(`Chapter Validation - Chars: ${characterCount}, Cost: ${creditCost} credits`);
-
-    // 3. Check User's Organization Credits
-    // Get organization_id from users table
-    const { data: userData, error: userError } = await adminClient
-        .from("users")
-        .select("organization_id")
-        .eq("id", user.id)
-        .single();
-
-    if (userError || !userData?.organization_id) {
-        return errorResponse("User does not belong to an organization", 400);
-    }
-
-    // Get owner_id from organizations
-    const { data: orgData, error: orgError } = await adminClient
-        .from("organizations")
-        .select("owner_id")
-        .eq("id", userData.organization_id)
-        .single();
-
-    if (orgError || !orgData) {
-        return errorResponse("Organization not found", 404);
-    }
-    const ownerId = orgData.owner_id;
+    console.log(`Chapter Validation - Chars: ${characterCount}, Cost: ${creditCost} credits (Rounded Up)`);
 
     // Get available credits
     const { data: creditsData, error: creditsError } = await adminClient
         .from("credits_allocation")
-        .select("credits_available")
-        .eq("user_id", ownerId)
+        .select("credits_available, credits_used, total_credits_used")
+        .eq("user_id", user.id)
         .single();
 
     if (creditsError || !creditsData) {
@@ -224,10 +200,13 @@ Deno.serve(async (req) => {
       }
 
       // --- DEDUCT CREDITS ---
-      console.log(`Deducting ${creditCost} credits from owner ${ownerId}...`);
       const { error: deductionError } = await adminClient.from("credits_allocation")
-        .update({ credits_available: creditsData.credits_available - creditCost })
-        .eq("user_id", ownerId);
+        .update({ 
+            credits_available: creditsData.credits_available - creditCost,
+            credits_used: (creditsData.credits_used || 0) + creditCost,
+            total_credits_used: (creditsData.total_credits_used || 0) + creditCost
+        })
+        .eq("user_id", user.id);
       
       if (deductionError) {
           console.error("CRITICAL: Failed to deduct credits after generation!", deductionError);
@@ -242,6 +221,7 @@ Deno.serve(async (req) => {
           message: "Audio generated successfully",
           project_id: projectId,
           chapter_id: chapterId,
+          credits_used: creditCost,
           file: {
               id: fileId,
               url: fileUrl
