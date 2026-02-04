@@ -16,10 +16,8 @@ Deno.serve(async (req) => {
     const { user, error: authError } = await getAuthenticatedUser(req);
     if (authError || !user) return authError;
 
-    // Get projectId and chapterId from query params
     const url = new URL(req.url);
     const projectId = url.searchParams.get("projectId");
-    const chapterId = url.searchParams.get("chapterId");
 
     if (!projectId) {
       return errorResponse("Missing parameter: projectId", 400);
@@ -36,7 +34,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (projectError || !project) {
-       if (projectError?.code === "PGRST116") {
+        if (projectError?.code === "PGRST116") {
              return errorResponse("Project not found or access denied", 404);
         }
       console.error("Error fetching project:", projectError);
@@ -47,10 +45,10 @@ Deno.serve(async (req) => {
         return errorResponse("Project does not have a studio associated", 404);
     }
 
-    // 2. Fetch studio data (chapters, comments)
+    // 2. Fetch studio data (chapters only)
     const { data: studio, error: studioError } = await adminClient
       .from("studio")
-      .select("chapters, comments")
+      .select("chapters")
       .eq("id", project.studio_id)
       .single();
 
@@ -62,51 +60,47 @@ Deno.serve(async (req) => {
       return errorResponse("Failed to fetch studio", 500);
     }
 
-    // 3. Process chapters
-    let chaptersData = studio.chapters || [];
-    const allComments = studio.comments || [];
+    const chapters = studio.chapters || [];
 
-    // Filter if chapterId is provided
-    if (chapterId) {
-        const found = chaptersData.find((ch: any) => ch.id === chapterId);
-        if (!found) {
-             return errorResponse("Chapter not found", 404);
-        }
-        chaptersData = [found];
-    }
-
-    const processedChapters = chaptersData.map((chapter: any) => {
-        let enrichedBlocks: any[] = [];
+    // 3. Process statistics
+    const chapterDetails = chapters.map((chapter: any) => {
+        let totalText = "";
 
         if (chapter.content_json && Array.isArray(chapter.content_json.blocks)) {
-            enrichedBlocks = chapter.content_json.blocks.map((block: any) => {
-                // Determine block comments
-                const blockComments = allComments.filter((c: any) => c.block_id === block.block_id);
-                
-                // Text calculation
-                return {
-                    ...block,
-                    comments: blockComments
-                };
-            });
+             chapter.content_json.blocks.forEach((block: any) => {
+                if (Array.isArray(block.nodes)) {
+                    block.nodes.forEach((node: any) => {
+                        if (node.text) {
+                            totalText += node.text; // Concatenate without space for strict char count? Or with space? 
+                            // Usually with space for word count, but for credits char count might need to be exact.
+                            // Adding space to match logic in other functions usually better for tokenization.
+                             totalText += " ";
+                        }
+                    });
+                }
+             });
         }
 
+        const trimmedText = totalText.trim();
+        const characterCount = trimmedText.length;
+        const wordCount = trimmedText ? trimmedText.split(/\s+/).length : 0;
+        
+        // 1 credit = 1000 characters
+        const creditsUsed = characterCount / 1000;
+
         return {
-            title: chapter.name,
-            chapter_id: chapter.id,
-            content: {
-                blocks: enrichedBlocks
-            }
+            chapterId: chapter.id,
+            chapterTitle: chapter.name,
+            wordCount: wordCount,
+            estimatedCreditsUsed: creditsUsed
         };
     });
 
-    const responsePayload: any = {
+    return successResponse({
       status: "success",
-      message: "Chapters retrieved successfully",
-      chapters: processedChapters,
-    };
-
-    return successResponse(responsePayload, 200);
+      message: "Chapter details retrieved successfully",
+      data: chapterDetails,
+    }, 200);
 
   } catch (error) {
     console.error("Unexpected error:", error);

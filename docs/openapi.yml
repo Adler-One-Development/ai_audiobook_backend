@@ -113,6 +113,23 @@ components:
         - id
         - genreName
 
+    BookMetadata:
+      type: object
+      description: Book metadata (title, author, etc.)
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        description:
+          type: string
+        isbn:
+          type: string
+        publisher_name:
+          type: string
+        publication_date:
+          type: string
+
     Project:
       type: object
       properties:
@@ -134,21 +151,7 @@ components:
             format: uuid
           description: List of Organization UUIDs that have shared access
         book:
-          type: object
-          description: Book metadata (title, author, etc.)
-          properties:
-            title:
-              type: string
-            author:
-              type: string
-            description:
-              type: string
-            isbn:
-              type: string
-            publisher_name:
-              type: string
-            publication_date:
-              type: string
+          $ref: "#/components/schemas/BookMetadata"
         gallery:
           $ref: "#/components/schemas/Gallery"
         genre:
@@ -201,7 +204,6 @@ components:
       properties:
         id:
           type: string
-          format: uuid
         name:
           type: string
         content_json:
@@ -210,15 +212,26 @@ components:
         - id
         - name
 
+    StudioChapter:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+
     GetStudioResponse:
       type: object
       properties:
         book:
-          type: object
+          $ref: "#/components/schemas/BookMetadata"
         chapters:
           type: array
           items:
-            $ref: "#/components/schemas/Chapter"
+            $ref: "#/components/schemas/StudioChapter"
         gallery_id:
           type: string
           format: uuid
@@ -226,6 +239,33 @@ components:
         - book
         - chapters
         - gallery_id
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        user_id:
+          type: string
+          format: uuid
+        block_id:
+          type: string
+        resolved:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+        user_name:
+          type: string
+      required:
+        - id
+        - text
+        - user_id
+        - block_id
+        - timestamp
 
     ContentBlock:
       type: object
@@ -241,7 +281,7 @@ components:
         comments:
           type: array
           items:
-            type: object
+            $ref: "#/components/schemas/Comment"
       required:
         - nodes
 
@@ -252,16 +292,6 @@ components:
           type: string
         chapter_id:
           type: string
-          format: uuid
-        word_count:
-          type: integer
-          description: Total number of words in the chapter
-        chapterDuration:
-          type: number
-          description: Duration in seconds (placeholder)
-        creditsUsed:
-          type: number
-          description: Credits used (1 credit = 1000 characters)
         content:
           type: object
           properties:
@@ -272,9 +302,6 @@ components:
       required:
         - title
         - chapter_id
-        - word_count
-        - chapterDuration
-        - creditsUsed
         - content
 
     GetAllChaptersResponse:
@@ -286,6 +313,24 @@ components:
             $ref: "#/components/schemas/ChapterSummary"
       required:
         - chapters
+
+    ChapterDetails:
+      type: object
+      properties:
+        chapterId:
+          type: string
+          description: The ID of the chapter (string due to legacy support)
+        chapterTitle:
+          type: string
+        wordCount:
+          type: integer
+        estimatedCreditsUsed:
+          type: number
+      required:
+        - chapterId
+        - chapterTitle
+        - wordCount
+        - estimatedCreditsUsed
 
 paths:
   /getTotalCredits:
@@ -3684,7 +3729,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /getStudio:
-    post:
+    get:
       summary: Get studio data for a project
       description: |
         Retrieves studio information including book details, chapters, and gallery ID.
@@ -3694,19 +3739,14 @@ paths:
         - Audiobook Management
       security:
         - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - projectId
-              properties:
-                projectId:
-                  type: string
-                  format: uuid
-                  description: The ID of the project
+      parameters:
+        - in: query
+          name: projectId
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: The ID of the project
       responses:
         "200":
           description: Studio retrieved successfully
@@ -3738,30 +3778,73 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /getAllChapters:
-    post:
-      summary: Get all chapters with statistics
+  /getChapterDetails:
+    get:
+      summary: Get chapter details (stats)
       description: |
-        Retrieves all chapters for a project with word count and credit usage statistics.
+        Retrieves statistics for all chapters in a project, including title, word count, and estimated credits used.
+        Requires authenticated user with access to the project.
+      operationId: getChapterDetails
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: projectId
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: The ID of the project
+      responses:
+        "200":
+          description: Chapter details retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ChapterDetails"
+        "400":
+          description: Missing project ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getAllChapters:
+    get:
+      summary: Get all chapters or a single chapter
+      description: |
+        Retrieves chapters for a project.
+        If chapterId is provided, returns that specific chapter in the chapters array.
+        Includes word count and credits usage.
         Requires authenticated user with access to the project.
       operationId: getAllChapters
       tags:
         - Audiobook Management
       security:
         - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - projectId
-              properties:
-                projectId:
-                  type: string
-                  format: uuid
-                  description: The ID of the project
+      parameters:
+        - in: query
+          name: projectId
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: The ID of the project
+        - in: query
+          name: chapterId
+          schema:
+            type: string
+          required: false
+          description: Optional ID of a specific chapter
       responses:
         "200":
           description: Chapters retrieved successfully
@@ -3860,8 +3943,63 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /deleteChapter:
+  /generateAudioForChapter:
     post:
+      summary: Generate audio for a chapter
+      description: |
+        Triggers audio generation for a chapter using ElevenLabs and streams the result.
+        Process:
+        1. Converts chapter (creates snapshot)
+        2. Retrieves latest snapshot
+        3. Streams the audio back to client
+
+        Requires authenticated user with access to the project.
+      operationId: generateAudioForChapter
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - projectId
+                - chapterId
+                - chapterSnapshotId
+              properties:
+                projectId:
+                  type: string
+                  format: uuid
+                  description: The ID of the project
+                chapterId:
+                  type: string
+                  description: The ID of the chapter to generate audio for
+                chapterSnapshotId:
+                  type: string
+                  description: The ID of the chapter snapshot to stream
+      responses:
+        "200":
+          description: Audio stream
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /deleteChapter:
+    delete:
       summary: Delete a chapter
       description: |
         Deletes a chapter by calling ElevenLabs API and removing it from the local database.
@@ -3876,7 +4014,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               properties:
@@ -3928,7 +4066,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               required:
@@ -3989,6 +4127,79 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "502":
           description: Bad Gateway (ElevenLabs API Error)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /convertChapter:
+    post:
+      summary: Convert a chapter
+      description: |
+        Triggers chapter conversion via ElevenLabs API.
+        Requires authenticated user with access to the project.
+      operationId: convertChapter
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - projectId
+                - chapterId
+              properties:
+                projectId:
+                  type: string
+                  format: uuid
+                  description: The ID of the project
+                chapterId:
+                  type: string
+                  description: The ID of the chapter to convert
+      responses:
+        "200":
+          description: Chapter conversion completed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          chapter_snapshot_id:
+                            type: string
+                          project_id:
+                            type: string
+                          chapter_id:
+                            type: string
+                          created_at:
+                            type: string
+                            format: date-time
+                            description: ISO 8601 formatted timestamp
+                          name:
+                            type: string
+        "400":
+          description: Missing parameters or headers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Project or Studio not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error or ElevenLabs API failure
           content:
             application/json:
               schema:

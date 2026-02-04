@@ -17,15 +17,17 @@ Deno.serve(async (req) => {
     const { user, error: authError } = await getAuthenticatedUser(req);
     if (authError || !user) return authError;
 
-    // Parse request body
-    let body;
+    // Parse form data
+    let formData;
     try {
-      body = await req.json();
+      formData = await req.formData();
     } catch (e) {
-      return errorResponse("Invalid JSON body", 400);
+      return errorResponse("Invalid form data", 400);
     }
 
-    const { projectId, chapterId, newName } = body;
+    const projectId = formData.get("projectId");
+    const chapterId = formData.get("chapterId");
+    const newName = formData.get("newName");
     const elevenLabsApiKey = req.headers.get("eleven-labs-api-key");
 
     if (!projectId || !chapterId || !newName) {

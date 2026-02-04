@@ -140,3 +140,24 @@ export interface Chapter {
         blocks: ContentBlock[];
     };
 }
+
+// Studio API models
+export interface StudioBook {
+    isbn: string;
+    title: string;
+    author: string;
+    description: string;
+    publisher_name: string;
+    publication_date: string;
+}
+
+export interface StudioChapter {
+    id: string;
+    name: string;
+}
+
+export interface GetStudioResponse {
+    book: StudioBook;
+    chapters: StudioChapter[];
+    gallery_id: string;
+}

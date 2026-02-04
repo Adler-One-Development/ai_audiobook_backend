@@ -592,3 +592,18 @@ entrypoint = "./functions/deleteChapter/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/editChapter/index.ts"
+
+[functions.generateAudioForChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/generateAudioForChapter/index.ts"
+
+[functions.getChapterDetails]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getChapterDetails/index.ts"
+
+[functions.convertChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/convertChapter/index.ts"

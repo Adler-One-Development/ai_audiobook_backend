@@ -12,6 +12,11 @@ Deno.serve(async (req) => {
     return handleCorsPreFlight();
   }
 
+  // Only accept DELETE requests
+  if (req.method !== "DELETE") {
+    return errorResponse("Method not allowed. Use DELETE.", 405);
+  }
+
   try {
     const { user, error: authError } = await getAuthenticatedUser(req);
     if (authError || !user) return authError;
@@ -22,15 +27,16 @@ Deno.serve(async (req) => {
       return errorResponse("Missing header: eleven-labs-api-key", 400);
     }
 
-    // Parse request body
-    let body;
+    // Parse form data
+    let formData;
     try {
-      body = await req.json();
+      formData = await req.formData();
     } catch (e) {
-      return errorResponse("Invalid JSON body", 400);
+      return errorResponse("Invalid form data", 400);
     }
 
-    const { projectId, chapterId } = body;
+    const projectId = formData.get("projectId");
+    const chapterId = formData.get("chapterId");
 
     if (!projectId || !chapterId) {
       return errorResponse("Missing parameter: projectId or chapterId", 400);

@@ -6,6 +6,7 @@ import {
 } from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
 import { createAdminClient } from "../_shared/supabase-client.ts";
+import { StudioBook, StudioChapter, GetStudioResponse } from "../_shared/types.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,15 +17,8 @@ Deno.serve(async (req) => {
     const { user, error: authError } = await getAuthenticatedUser(req);
     if (authError || !user) return authError;
 
-    // Parse request body
-    let body;
-    try {
-      body = await req.json();
-    } catch (e) {
-      return errorResponse("Invalid JSON body", 400);
-    }
-
-    const { projectId } = body;
+    // Get projectId from query params
+    const projectId = new URL(req.url).searchParams.get("projectId");
 
     if (!projectId) {
       return errorResponse("Missing parameter: projectId", 400);
@@ -52,10 +46,10 @@ Deno.serve(async (req) => {
         return errorResponse("Project does not have a studio associated", 404);
     }
 
-    // 2. Fetch studio data (chapters, gallery_id, comments)
+    // 2. Fetch studio data (chapters, gallery_id)
     const { data: studio, error: studioError } = await adminClient
       .from("studio")
-      .select("chapters, gallery_id, comments")
+      .select("chapters, gallery_id")
       .eq("id", project.studio_id)
       .single();
 
@@ -67,46 +61,29 @@ Deno.serve(async (req) => {
       return errorResponse("Failed to fetch studio", 500);
     }
 
-    // Response Model
-    interface Chapter {
-        id: string;
-        name: string;
-        content_json: any; 
-    }
-
-    interface GetStudioResponse {
-        book: any;
-        chapters: Chapter[];
-        gallery_id: string;
-    }
-
-    // Process chapters to inject comments
+    // Process chapters to return only id and name
     const chaptersData = studio.chapters || [];
-    const allComments = studio.comments || [];
+    
+    const processedChapters: StudioChapter[] = chaptersData.map((chapter: any) => ({
+        id: chapter.id,
+        name: chapter.name
+    }));
 
-    const processedChapters = chaptersData.map((chapter: any) => {
-        if (chapter.content_json && Array.isArray(chapter.content_json.blocks)) {
-            const enrichedBlocks = chapter.content_json.blocks.map((block: any) => {
-                // Determine block comments
-                const blockComments = allComments.filter((c: any) => c.block_id === block.block_id);
-                return {
-                    ...block,
-                    comments: blockComments
-                };
-            });
-            return {
-                ...chapter,
-                content_json: {
-                    ...chapter.content_json,
-                    blocks: enrichedBlocks
-                }
-            };
+    // Deserialize book object if it's a string
+    let bookData: StudioBook = project.book;
+    if (typeof bookData === 'string') {
+        try {
+            bookData = JSON.parse(bookData);
+        } catch (e) {
+            console.error("Error parsing book JSON:", e);
+             // fallback to original if parse fails, or empty object? 
+             // keeping as is if fail usually safest unless strict schema
         }
-        return chapter;
-    });
+    }
+
 
     const responseData: GetStudioResponse = {
-        book: project.book,
+        book: bookData,
         chapters: processedChapters,
         gallery_id: studio.gallery_id,
     };
