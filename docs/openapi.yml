@@ -239,25 +239,23 @@ paths:
         1. Connect to WebSocket.
         2. Send JSON payload with configuration.
         3. Receive status updates and final completion message.
+
+        ### Request Payload (Send as JSON message)
+        ```json
+        {
+            "project_id": "...",
+            "supabase_anon_key": "...",
+            "eleven_labs_api_key": "...",
+            "voice_id": "...",
+            "access_token": "YOUR_JWT_TOKEN_HERE"
+        }
+        ```
       operationId: manuscriptProcessing
       tags:
         - WebSockets
       servers:
         - url: https://manuscript-processing-581621465354.europe-west1.run.app
           description: Cloud Run Service
-      parameters:
-        - name: Connection
-          in: header
-          schema:
-            type: string
-            enum: [Upgrade]
-          required: true
-        - name: Upgrade
-          in: header
-          schema:
-            type: string
-            enum: [websocket]
-          required: true
       responses:
         "101":
           description: Switching Protocols - WebSocket Connection Established
@@ -268,6 +266,7 @@ paths:
           - supabase_anon_key
           - eleven_labs_api_key
           - voice_id
+          - access_token
         properties:
           project_id:
             type: string
@@ -282,6 +281,9 @@ paths:
           voice_id:
             type: string
             description: ElevenLabs Voice ID to use for TTS.
+          access_token:
+            type: string
+            description: User JWT access token.
           open_ai_api_key:
             type: string
             description: OpenAI API key (Required if AI mode is enabled).
@@ -298,25 +300,25 @@ paths:
         1. Connect to WebSocket.
         2. Send JSON payload with file and studio details.
         3. Server downloads file, extracts chapters, and updates ElevenLabs & Database.
+
+        ### Request Payload (Send as JSON message)
+        ```json
+        {
+            "gallery_id": "0da3b469-2e19-4431-9f75-8ec3e2f0c260",
+            "file_id": "ff9f435e-d3f1-4f2e-845c-a4852696612e",
+            "studio_id": "XE4Ex5gBhDmqxXXcxNHJ",
+            "supabase_anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "eleven_labs_api_key": "sk_...",
+            "voice_id": "hpp4J3VqNfWAUOO0d1Us",
+            "access_token": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjFmYWY5N2Iy..."
+        }
+        ```
       operationId: manuscriptUpdate
       tags:
         - WebSockets
       servers:
         - url: https://manuscript-update-581621465354.europe-west1.run.app
           description: Cloud Run Service
-      parameters:
-        - name: Connection
-          in: header
-          schema:
-            type: string
-            enum: [Upgrade]
-          required: true
-        - name: Upgrade
-          in: header
-          schema:
-            type: string
-            enum: [websocket]
-          required: true
       responses:
         "101":
           description: Switching Protocols - WebSocket Connection Established
