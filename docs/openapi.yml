@@ -4826,6 +4826,69 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /getChapterSnapshots:
+    get:
+      summary: Get snapshots for a chapter
+      description: |
+        Retrieves snapshots for a specific chapter from ElevenLabs.
+
+        Requires authenticated user with access to the project.
+      operationId: getChapterSnapshots
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      parameters:
+        - in: query
+          name: project_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: The ID of the project
+        - in: query
+          name: chapter_id
+          schema:
+            type: string
+          required: true
+          description: The ID of the chapter
+      responses:
+        "200":
+          description: List of snapshots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  snapshots:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        chapter_snapshot_id:
+                          type: string
+                        studio_id:
+                          type: string
+                        chapter_id:
+                          type: string
+                        created_at_unix:
+                          type: integer
+                        created_at:
+                          type: string
+                        name:
+                          type: string
+                  message:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /deleteChapter:
     delete:
       summary: Delete a chapter
