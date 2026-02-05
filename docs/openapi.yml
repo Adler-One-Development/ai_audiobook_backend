@@ -4889,6 +4889,61 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /getProjectSnapshots:
+    get:
+      summary: Get snapshots for a project
+      description: |
+        Retrieves snapshots for a specific project from ElevenLabs.
+
+        Requires authenticated user with access to the project.
+      operationId: getProjectSnapshots
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      parameters:
+        - in: query
+          name: project_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: The ID of the project
+      responses:
+        "200":
+          description: List of snapshots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  snapshots:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        project_snapshot_id:
+                          type: string
+                        studio_id:
+                          type: string
+                        created_at_unix:
+                          type: integer
+                        created_at:
+                          type: string
+                        name:
+                          type: string
+                  message:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /deleteChapter:
     delete:
       summary: Delete a chapter

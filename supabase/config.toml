@@ -607,3 +607,13 @@ entrypoint = "./functions/getChapterDetails/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/convertChapter/index.ts"
+
+[functions.getChapterSnapshots]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getChapterSnapshots/index.ts"
+
+[functions.getProjectSnapshots]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getProjectSnapshots/index.ts"
