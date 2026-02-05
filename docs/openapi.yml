@@ -4944,6 +4944,64 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /convertProject:
+    post:
+      summary: Convert a project and get latest snapshot
+      description: |
+        Triggers a conversion for the project in ElevenLabs and returns the latest snapshot.
+
+        Requires `project_id` as multipart/form-data.
+
+        **Note:** This endpoint waits for 10 seconds before fetching the snapshot.
+      operationId: convertProject
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                project_id:
+                  type: string
+                  format: uuid
+                  description: The ID of the project to convert
+              required:
+                - project_id
+      responses:
+        "200":
+          description: Project snapshot retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      project_snapshot_id:
+                        type: string
+                      studio_id:
+                        type: string
+                        description: The ElevenLabs project ID
+                      created_at_unix:
+                        type: integer
+                      created_at:
+                        type: string
+                      name:
+                        type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /deleteChapter:
     delete:
       summary: Delete a chapter
