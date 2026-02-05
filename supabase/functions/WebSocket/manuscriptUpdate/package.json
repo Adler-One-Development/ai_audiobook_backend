@@ -1,0 +1,19 @@
+{
+  "name": "manuscript-processing",
+  "version": "1.0.0",
+  "description": "WebSocket server for manuscript processing via ElevenLabs",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.16.0",
+    "mammoth": "^1.6.0",
+    "epub2": "^3.0.2",
+    "pdf-parse": "^1.1.1"
+  }
+}

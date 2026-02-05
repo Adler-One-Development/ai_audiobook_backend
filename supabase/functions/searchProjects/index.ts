@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
         // Apply search filter (search in title, author, description)
         if (search) {
             query = query.or(
-                `book->title.ilike.%${search}%,book->author.ilike.%${search}%,book->description.ilike.%${search}%`,
+                `book->>title.ilike.%${search}%,book->>author.ilike.%${search}%,book->>description.ilike.%${search}%`,
             );
         }
 
