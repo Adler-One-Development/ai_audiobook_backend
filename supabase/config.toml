@@ -627,3 +627,8 @@ entrypoint = "./functions/convertProject/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/generateAudioForProject/index.ts"
+
+[functions.editNodeSettings]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/editNodeSettings/index.ts"

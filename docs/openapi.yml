@@ -807,14 +807,14 @@ paths:
             schema:
               type: object
               required:
-                - refreshToken
+                - refresh_token
               properties:
-                refreshToken:
+                refresh_token:
                   type: string
-                  example: xYz123RefreshToken456...
+                  description: The refresh token to use
       responses:
         "200":
-          description: Token refreshed successfully
+          description: Token refresh successful
           content:
             application/json:
               schema:
@@ -831,15 +831,81 @@ paths:
                       expiresIn:
                         type: integer
                         description: Token expiration time in seconds
-              example:
-                status: success
-                message: Token refreshed successfully
-                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                refreshToken: aBc456NewRefreshToken789...
-                expiresIn: 3600
-        "401":
-          description: Unauthorized - Invalid or expired refresh token
+
+  /editNodeSettings:
+    post:
+      summary: Edit Node Settings
+      description: |
+        Updates the voice settings for a specific node.
+      operationId: editNodeSettings
+      tags:
+        - Nodes
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - voice_id
+              properties:
+                voice_id:
+                  type: string
+                  description: The ID of the voice
+                voice_description:
+                  type: string
+                  description: Optional description of the voice
+                  nullable: true
+                speaking_rate:
+                  type: number
+                  format: double
+                  description: Speaking rate (0.5 - 2.0)
+                  minimum: 0.5
+                  maximum: 2.0
+                performance_intensity:
+                  type: number
+                  format: double
+                  description: Performance intensity (0 - 1)
+                  minimum: 0
+                  maximum: 1
+                expressiveness:
+                  type: number
+                  format: double
+                  description: Expressiveness (0 - 1)
+                  minimum: 0
+                  maximum: 1
+                voice_fidelity:
+                  type: number
+                  format: double
+                  description: Voice fidelity (0 - 1)
+                  minimum: 0
+                  maximum: 1
+                enhance_voice_character:
+                  type: boolean
+                  description: Enhance voice character
+      responses:
+        "200":
+          description: Settings updated successfully
           content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad request - Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /confirmPassword:
     post:
       summary: Confirm user password
