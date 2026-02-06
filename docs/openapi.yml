@@ -5002,6 +5002,79 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /generateAudioForProject:
+    post:
+      summary: Generate audio for the entire project
+      description: |
+        Generates audio for all chapters in a project using ElevenLabs.
+
+        Calculates credit cost based on total character count across all chapters.
+        Deducts credits from user's balance.
+        Saves the generated audio to Supabase Storage and updates the gallery.
+
+        Requires `project_id` and `project_snapshot_id` as multipart/form-data.
+      operationId: generateAudioForProject
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                project_id:
+                  type: string
+                  format: uuid
+                  description: The ID of the project
+                project_snapshot_id:
+                  type: string
+                  description: The snapshot ID from ElevenLabs to generate audio for
+              required:
+                - project_id
+                - project_snapshot_id
+      responses:
+        "200":
+          description: Audio generated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      project_id:
+                        type: string
+                        format: uuid
+                      credits_used:
+                        type: integer
+                      file:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          url:
+                            type: string
+                            format: uri
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          description: Payment Required - Insufficient credits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /deleteChapter:
     delete:
       summary: Delete a chapter
