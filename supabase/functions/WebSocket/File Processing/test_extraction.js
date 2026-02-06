@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import mammoth from 'mammoth';
-import EPub from 'epub2';
+import epubPkg from 'epub2';
+const EPub = epubPkg.EPub || epubPkg.default || epubPkg;
 import pdfParse from 'pdf-parse';
 import { fileURLToPath } from 'url';
 

@@ -343,6 +343,136 @@ components:
         - estimatedCreditsUsed
 
 paths:
+  /manuscript-processing:
+    get:
+      summary: Initialize Manuscript Processing (WebSocket)
+      description: |
+        **WebSocket Endpoint**
+
+        Connect to this endpoint via WebSocket (`wss://`) to process a new audiobook project.
+
+        **Flow:**
+        1. Connect to WebSocket.
+        2. Send JSON payload with configuration.
+        3. Receive status updates and final completion message.
+
+        ### Request Payload (Send as JSON message)
+        ```json
+        {
+            "project_id": "...",
+            "supabase_anon_key": "...",
+            "eleven_labs_api_key": "...",
+            "voice_id": "...",
+            "access_token": "YOUR_JWT_TOKEN_HERE"
+        }
+        ```
+      operationId: manuscriptProcessing
+      tags:
+        - WebSockets
+      servers:
+        - url: https://manuscript-processing-581621465354.europe-west1.run.app
+          description: Cloud Run Service
+      responses:
+        "101":
+          description: Switching Protocols - WebSocket Connection Established
+      x-websocket-payload:
+        type: object
+        required:
+          - project_id
+          - supabase_anon_key
+          - eleven_labs_api_key
+          - voice_id
+          - access_token
+        properties:
+          project_id:
+            type: string
+            format: uuid
+            description: The UUID of the project to process.
+          supabase_anon_key:
+            type: string
+            description: Supabase anonymous API key.
+          eleven_labs_api_key:
+            type: string
+            description: ElevenLabs API key.
+          voice_id:
+            type: string
+            description: ElevenLabs Voice ID to use for TTS.
+          access_token:
+            type: string
+            description: User JWT access token.
+          open_ai_api_key:
+            type: string
+            description: OpenAI API key (Required if AI mode is enabled).
+
+  /manuscript-update:
+    get:
+      summary: Update Manuscript Chapters (WebSocket)
+      description: |
+        **WebSocket Endpoint**
+
+        Connect to this endpoint via WebSocket (`wss://`) to update an existing project with new chapters from a file.
+
+        **Flow:**
+        1. Connect to WebSocket.
+        2. Send JSON payload with file and studio details.
+        3. Server downloads file, extracts chapters, and updates ElevenLabs & Database.
+
+        ### Request Payload (Send as JSON message)
+        ```json
+        {
+            "gallery_id": "0da3b469-2e19-4431-9f75-8ec3e2f0c260",
+            "file_id": "ff9f435e-d3f1-4f2e-845c-a4852696612e",
+            "studio_id": "XE4Ex5gBhDmqxXXcxNHJ",
+            "supabase_anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "eleven_labs_api_key": "sk_...",
+            "voice_id": "hpp4J3VqNfWAUOO0d1Us",
+            "access_token": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjFmYWY5N2Iy..."
+        }
+        ```
+      operationId: manuscriptUpdate
+      tags:
+        - WebSockets
+      servers:
+        - url: https://manuscript-update-581621465354.europe-west1.run.app
+          description: Cloud Run Service
+      responses:
+        "101":
+          description: Switching Protocols - WebSocket Connection Established
+      x-websocket-payload:
+        type: object
+        required:
+          - gallery_id
+          - file_id
+          - studio_id
+          - supabase_anon_key
+          - eleven_labs_api_key
+          - voice_id
+          - access_token
+        properties:
+          gallery_id:
+            type: string
+            format: uuid
+            description: Gallery UUID containing the source file.
+          file_id:
+            type: string
+            format: uuid
+            description: File UUID within the gallery.
+          studio_id:
+            type: string
+            description: ElevenLabs Studio Project ID.
+          supabase_anon_key:
+            type: string
+            description: Supabase anonymous API key.
+          eleven_labs_api_key:
+            type: string
+            description: ElevenLabs API key.
+          voice_id:
+            type: string
+            description: ElevenLabs Voice ID.
+          access_token:
+            type: string
+            description: User JWT access token (for database permissions).
+
   /signUp:
     post:
       summary: Register a new user
@@ -5297,3 +5427,5 @@ tags:
     description: Organization Copyright management endpoints
   - name: Audiobook Management
     description: APIs for managing audiobook project data (genres, etc.)
+  - name: WebSockets
+    description: Real-time WebSocket endpoints for long-running processes
