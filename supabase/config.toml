@@ -567,3 +567,63 @@ entrypoint = "./functions/setOrganizationCopyright/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/changeEmail/index.ts"
+
+[functions.getStudio]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getStudio/index.ts"
+
+[functions.getAllChapters]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getAllChapters/index.ts"
+
+[functions.renameChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/renameChapter/index.ts"
+
+[functions.deleteChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/deleteChapter/index.ts"
+
+[functions.editChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/editChapter/index.ts"
+
+[functions.generateAudioForChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/generateAudioForChapter/index.ts"
+
+[functions.getChapterDetails]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getChapterDetails/index.ts"
+
+[functions.convertChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/convertChapter/index.ts"
+
+[functions.getChapterSnapshots]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getChapterSnapshots/index.ts"
+
+[functions.getProjectSnapshots]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getProjectSnapshots/index.ts"
+
+[functions.convertProject]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/convertProject/index.ts"
+
+[functions.generateAudioForProject]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/generateAudioForProject/index.ts"
