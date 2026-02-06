@@ -404,6 +404,63 @@ paths:
             type: string
             description: OpenAI API key (Required if AI mode is enabled).
 
+  /live-chapter-editor:
+    get:
+      summary: Live Chapter Editor (WebSocket)
+      description: |
+        **WebSocket Endpoint**
+
+        Connect to this endpoint via WebSocket (`wss://`) for real-time chapter editing.
+        It synchronizes local state with the client and persists changes to ElevenLabs and Supabase.
+
+        **Flow:**
+        1. **Connect**: Send initial JSON payload with project details.
+        2. **Sync**: Server fetches current content and returns it.
+        3. **Edit**: Client sends modified content.
+        4. **Update**: Server detects changes and updates backend APIs.
+
+        ### Request Payload (Initial & Updates)
+        ```json
+        {
+            "project_id": "...",
+            "chapter_id": "...",
+            "supabase_anon_key": "...",
+            "eleven_labs_api_key": "...",
+            "access_token": "YOUR_JWT_TOKEN_HERE",
+            "voice_id": "...",
+            "content": { ... } // Empty on init, full object on update
+        }
+        ```
+      operationId: liveChapterEditor
+      tags:
+        - WebSockets
+      servers:
+        - url: https://chapter-editor-581621465354.us-south1.run.app
+          description: Cloud Run Service
+      responses:
+        "101":
+          description: Switching Protocols - WebSocket Connection Established
+      x-websocket-payload:
+        type: object
+        required:
+          - project_id
+          - chapter_id
+          - access_token
+        properties:
+          project_id:
+            type: string
+            format: uuid
+            description: The UUID of the project.
+          chapter_id:
+            type: string
+            description: The ID of the chapter to edit.
+          access_token:
+            type: string
+            description: User JWT access token.
+          content:
+            type: object
+            description: Chapter content object (blocks).
+
   /manuscript-update:
     get:
       summary: Update Manuscript Chapters (WebSocket)
