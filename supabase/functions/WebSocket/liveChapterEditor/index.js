@@ -82,9 +82,11 @@ wss.on('connection', (ws) => {
             const session = sessionState.get(ws);
 
             // =================================================================
-            // INITIALIZATION / SYNC (No local content yet)
+            // INITIALIZATION / SYNC
             // =================================================================
-            if (!session.currentContent) {
+            // Check for explicit init signal OR if we just don't have session content yet
+            // User requested using "{INIT}" string to signal start
+            if (content === '{INIT}' || !session.currentContent) {
                  console.log(`Initializing session for Project: ${project_id}, Chapter: ${chapter_id}`);
                  
                  // Fetch latest content from API
@@ -112,8 +114,9 @@ wss.on('connection', (ws) => {
             // UPDATE / COMPARISON (Local content exists)
             // =================================================================
             
-            // If content is provided in message, compare it
-            if (content && Object.keys(content).length > 0) {
+            // Treat ANY other content (including empty object) as a potential update
+            // Check if it's a valid object before comparing
+            if (typeof content === 'object' && content !== null) {
                 // Determine if changed
                 // Use local deep comparison
                 const isChanged = !deepEqual(content, session.currentContent);
@@ -150,13 +153,10 @@ wss.on('connection', (ws) => {
                     }
                 }
             } else {
-                 // If content is empty/missing but we have session, treat as "sync/refresh" or "no-op"
-                 // Just return current state
+                 // Unknown content type (e.g. string that isn't {INIT})
                  ws.send(JSON.stringify({
-                     status: "no changes detected",
-                     connection_status: "CONNECTED",
-                     action: "DO NOTHING",
-                     content_json: session.currentContent
+                     status: "error",
+                     message: "Invalid content format. Send '{INIT}' to sync or JSON object to update."
                  }));
             }
 

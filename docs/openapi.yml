@@ -428,7 +428,7 @@ paths:
             "eleven_labs_api_key": "...",
             "access_token": "YOUR_JWT_TOKEN_HERE",
             "voice_id": "...",
-            "content": { ... } // Empty on init, full object on update
+            "content": "{INIT}" // Send "{INIT}" string to sync. Send Object {...} to update.
         }
         ```
       operationId: liveChapterEditor
@@ -459,7 +459,7 @@ paths:
             description: User JWT access token.
           content:
             type: object
-            description: Chapter content object (blocks).
+            description: Chapter content object (blocks) OR string "{INIT}" for initialization.
 
   /manuscript-update:
     get:
