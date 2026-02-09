@@ -4395,6 +4395,239 @@ paths:
               properties:
                 studio_id:
                   type: string
+                comment_id:
+                  type: string
+      responses:
+        "200":
+          description: Comment deleted successfully
+        "404":
+          description: Comment not found
+
+  /deleteChapter:
+    delete:
+      summary: Delete a chapter
+      description: Deletes a chapter from Supabase and ElevenLabs.
+      operationId: deleteChapter
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - chapter_id
+              properties:
+                studio_id:
+                  type: string
+                  description: ElevenLabs Project ID
+                chapter_id:
+                  type: string
+      responses:
+        "200":
+          description: Chapter deleted successfully
+        "502":
+          description: Failed to delete from ElevenLabs
+
+  /renameChapter:
+    post:
+      summary: Rename a chapter
+      description: Renames a chapter in Supabase (and attempts ElevenLabs update).
+      operationId: renameChapter
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - chapter_id
+                - chapter_name
+              properties:
+                studio_id:
+                  type: string
+                chapter_id:
+                  type: string
+                chapter_name:
+                  type: string
+      responses:
+        "200":
+          description: Chapter renamed successfully
+
+  /duplicateChapter:
+    post:
+      summary: Duplicate a chapter
+      description: Creates a copy of a chapter and inserts it immediately after the original.
+      operationId: duplicateChapter
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+          description: Chapter duplicated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  chapter:
+                    $ref: "#/components/schemas/StudioChapter"
+
+  /addCastMember:
+    post:
+      summary: Add a new cast member
+      description: Adds a cast member, optionally remixing voice settings and replacing global overrides.
+      operationId: addCastMember
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                 - studio_id
+                 - nickname
+                 - voice_id
+                 - override_globally
+              properties:
+                studio_id:
+                  type: string
+                nickname:
+                  type: string
+                voice_id:
+                  type: string
+                override_globally:
+                  type: boolean
+                override_settings:
+                  type: object
+                  properties:
+                    speaking_rate:
+                      type: number
+                    performance_intensity:
+                      type: number
+                    expressiveness:
+                      type: number
+                    "voice fidelity":
+                      type: number
+                    "enhance voice character":
+                      type: boolean
+      responses:
+        "200":
+          description: Cast member added successfully
+
+  /editCastMember:
+    post:
+      summary: Edit a cast member
+      description: Updates cast member details and settings.
+      operationId: editCastMember
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                 - studio_id
+                 - cast_id
+              properties:
+                studio_id:
+                  type: string
+                cast_id:
+                  type: string
+                nickname:
+                  type: string
+                voice_id:
+                  type: string
+                override_globally:
+                  type: boolean
+                override_settings:
+                  type: object
+                  properties:
+                    speaking_rate:
+                      type: number
+                    performance_intensity:
+                      type: number
+                    expressiveness:
+                      type: number
+                    "voice fidelity":
+                      type: number
+                    "enhance voice character":
+                      type: boolean
+      responses:
+        "200":
+          description: Cast member updated successfully
+
+  /deleteCastMember:
+    delete:
+      summary: Delete a cast member
+      description: Deletes cast member and reverts voice substitution in chapters.
+      operationId: deleteCastMember
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                 - studio_id
+                 - cast_id
+              properties:
+                studio_id:
+                  type: string
+                cast_id:
+                  type: string
+      responses:
+        "200":
+          description: Cast member deleted successfully
+
+  /deleteComment:
+    delete:
+      summary: Delete a comment from a studio block
+      description: |
+        Deletes a comment from a studio block. Only the user who created the comment can delete it.
+      operationId: deleteComment
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - comment_id
+              properties:
+                studio_id:
+                  type: string
                   description: The ID of the studio containing the comment
                   example: "4VjB54RZqdmqRjxXrAZl"
                 comment_id:
