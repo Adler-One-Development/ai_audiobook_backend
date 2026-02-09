@@ -1,0 +1,17 @@
+{
+    "name": "live-chapter-editor",
+    "version": "1.0.0",
+    "description": "WebSocket server for real-time chapter editing via ElevenLabs & Supabase",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "dependencies": {
+        "ws": "^8.16.0",
+        "@google-cloud/functions-framework": "^3.3.0"
+    }
+}
