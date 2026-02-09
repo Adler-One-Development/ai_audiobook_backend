@@ -4459,6 +4459,10 @@ paths:
                   type: string
                 chapter_name:
                   type: string
+            example:
+              studio_id: "06bede21-9694-4a32-88f5-e966cfa13f4"
+              chapter_id: "0C8UHtgU0v0L9ViLmFpr"
+              chapter_name: "New Chapter Name"
       responses:
         "200":
           description: Chapter renamed successfully

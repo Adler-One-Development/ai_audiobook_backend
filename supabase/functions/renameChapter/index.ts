@@ -22,7 +22,18 @@ Deno.serve(async (req) => {
   };
 
   try {
-    // Get the authorization header
+    // Enforce JSON Content-Type
+    const contentType = req.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      return new Response(
+        JSON.stringify({
+          status: "error",
+          message: "Invalid Content-Type. Please use 'application/json'.",
+        }),
+        { status: 415, headers: corsHeaders },
+      );
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -31,7 +42,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseClient = createClient(supabaseUrl, supabaseKey, {
@@ -40,7 +50,6 @@ Deno.serve(async (req) => {
       },
     });
 
-    // Get the authenticated user
     const {
       data: { user },
       error: userError,
@@ -54,50 +63,25 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { studio_id, chapter_id, chapter_name } = await req.json();
+    // Also accept camelCase aliases for user convenience
+    const body = await req.json();
+    const studio_id = body.studio_id || body.projectId;
+    const chapter_id = body.chapter_id || body.chapterId;
+    const chapter_name = body.chapter_name || body.chapterName || body.newName;
 
     if (!studio_id || !chapter_id || !chapter_name) {
       return new Response(
         JSON.stringify({
           status: "error",
           message:
-            "Missing required fields: studio_id, chapter_id, chapter_name",
+            "Missing required fields: studio_id (or projectId), chapter_id (or chapterId), chapter_name (or newName)",
         }),
         { status: 400, headers: corsHeaders },
       );
     }
 
-    // Create admin client for database operations
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    const elevenLabsApiKey = Deno.env.get("ELEVEN_LABS_KEY");
-
-    if (!elevenLabsApiKey) {
-      return new Response(
-        JSON.stringify({
-          status: "error",
-          message: "Server configuration error: Missing ElevenLabs API Key",
-        }),
-        { status: 500, headers: corsHeaders },
-      );
-    }
-
-    // 1. Rename in ElevenLabs
-    // Unfortunately, ElevenLabs API does not have a direct "rename" endpoint for chapters in the public docs easily found without context.
-    // However, standard practice is efficient updating. We will assume a specific endpoint or logic.
-    // If no direct rename, we might need to rely on the fact that we primarily use EL for audio generation,
-    // but keeping names stored there is good.
-    // Let's try to pass 'name' to the snapshot/update endpoint or strictly rely on Supabase if EL doesn't support it strictly.
-    // BUT, user asked to "rename chapter from our studio table aswell as ElevenLabs".
-    // The most likely endpoint is POST /v1/projects/{project_id}/chapters/{chapter_id}/snapshot (which creates a snapshot) - not it.
-    // It's likely `POST /v1/projects/{project_id}/chapters/{chapter_id}` or just ignored if EL doesn't expose it.
-    // Re-checking assumed knowledge: EL Project Chapters have names.
-    // We will try a generic "update" if available, or just skip and only update Supabase if EL fails silently/404s on rename.
-    // Actually, for safety, let's implement the Supabase rename first as that's critical for UI.
-
-    // *Correction*: We will try to update it if possible, but primarily ensure Supabase is updated.
-    // NOTE: As of common API patterns, we would expect a PATCH or POST to update metadata.
-    // Let's purely update Supabase for now effectively, and try a best-effort call to EL.
 
     // 2. Rename in Supabase Studio Table
     const { data: studio, error: studioError } = await adminClient
