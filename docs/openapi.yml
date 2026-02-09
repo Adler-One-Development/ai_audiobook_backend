@@ -892,7 +892,46 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SuccessResponse"
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      voice_id:
+                        type:
+                        description: The final target voice ID.
+                        example:
+                      details:
+                        type: object
+                        description: Detailed debug and verification information.
+                        properties:
+                          original_voice_id:
+                            type: string
+                          created_voice_id:
+                            type: string
+                          settings_applied:
+                            type: boolean
+                          mapped_settings:
+                            type: object
+                            properties:
+                              speed:
+                                type: number
+                              style:
+                                type: number
+                              stability:
+                                type: number
+                              similarity_boost:
+                                type: boolean
+                              description:
+                                type: string
+                          voice_details_fetched:
+                            type: object
+                            properties:
+                              labels:
+                                type: string
+                              description:
+                                type: object
+                                additionalProperties: true
+
         "400":
           description: Bad request - Validation error
           content:
