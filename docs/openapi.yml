@@ -285,6 +285,11 @@ components:
         gallery_id:
           type: string
           format: uuid
+        cast:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+          description: List of cast members (uses same structure as comments for now)
       required:
         - book
         - chapters
