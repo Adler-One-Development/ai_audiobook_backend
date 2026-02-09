@@ -5,7 +5,7 @@ import {
   successResponse,
 } from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
-import { supabaseClient } from "../_shared/supabase-client.ts";
+import { createAdminClient } from "../_shared/supabase-client.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
     // Query the original voice from the voices table for metadata and naming
     let originalVoice: any = null;
     try {
-        const { data, error: voiceQueryError } = await supabaseClient
+        const { data, error: voiceQueryError } = await createAdminClient()
             .from("voices")
             .select("name, fine_tuning")
             .eq("voice_id", voice_id)
@@ -253,12 +253,14 @@ Deno.serve(async (req) => {
             if (createResponse.ok) {
                 const createData = await createResponse.json();
                 final_voice_id = createData.voice_id;
+
+                const adminClient = createAdminClient();
                 
                 // Insert the custom voice into the database if studio_id is provided
                 if (final_voice_id && studio_id) {
                     try {
 
-                        const { error: insertError } = await supabaseClient
+                        const { error: insertError } = await adminClient
                             .from("custom_voices")
                             .insert({
                                 voice_id: final_voice_id,
