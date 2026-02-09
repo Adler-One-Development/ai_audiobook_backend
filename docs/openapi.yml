@@ -4630,74 +4630,7 @@ paths:
         "200":
           description: Cast member deleted successfully
 
-  /deleteComment:
-    delete:
-      summary: Delete a comment from a studio block
-      description: |
-        Deletes a comment from a studio block. Only the user who created the comment can delete it.
-      operationId: deleteComment
-      security:
-        - BearerAuth: []
-      tags:
-        - Studio
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - studio_id
-                - comment_id
-              properties:
-                studio_id:
-                  type: string
-                  description: The ID of the studio containing the comment
-                  example: "4VjB54RZqdmqRjxXrAZl"
-                comment_id:
-                  type: string
-                  format: uuid
-                  description: The UUID of the comment to delete
-                  example: "550e8400-e29b-41d4-a716-446655440000"
-      responses:
-        "200":
-          description: Comment deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-              example:
-                status: success
-                message: Comment deleted successfully
-        "400":
-          description: Bad Request - Missing required fields
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: "Missing required fields: studio_id, comment_id"
-        "403":
-          description: Forbidden - User is not authorized to delete this comment
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: Unauthorized to delete this comment
-        "404":
-          description: Not Found - Studio or comment not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                studioNotFound:
-                  value:
-                    status: error
-                    message: Studio not found
+
                 commentNotFound:
                   value:
                     status: error
