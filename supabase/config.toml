@@ -638,3 +638,8 @@ entrypoint = "./functions/editVoiceSettings/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/getVoiceSettings/index.ts"
+
+[functions.generateAudioForParagraph]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/generateAudioForParagraph/index.ts"

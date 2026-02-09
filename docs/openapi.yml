@@ -1149,6 +1149,89 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /generateAudioForParagraph:
+    post:
+      summary: Generate Audio for Paragraph
+      description: |
+        Generates audio for a block of text nodes.
+        Processes each `tts_node` individually, downloading audio to temporary files, stitches them together, and returns the combined audio file in the response.
+      operationId: generateAudioForParagraph
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nodes
+              properties:
+                block_id:
+                  type: string
+                  description: Optional ID of the block being processed
+                nodes:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - type
+                    properties:
+                      text:
+                        type: string
+                      type:
+                        type: string
+                        enum: [tts_node, other]
+                      voice_id:
+                        type: string
+            example:
+              nodes:
+                - text: "While the other bears, like his brother Boris and his sister Bella, were sliding down glaciers on their tummies shouting,"
+                  type: "tts_node"
+                  voice_id: "hpp4J3VqNfWAUOO0d1Us"
+                - text: " Wheee! So refreshing!"
+                  type: "tts_node"
+                  voice_id: "hpp4J3VqNfWAUOO0d1Us"
+                - text: " , Barnaby was hiding behind a large rock, chattering his teeth."
+                  type: "tts_node"
+                  voice_id: "hpp4J3VqNfWAUOO0d1Us"
+              block_id: "RBntcylVbKVXN1UxXvaT"
+      responses:
+        "200":
+          description: Streaming audio data (MP3)
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad Request - Missing nodes or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "405":
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /confirmPassword:
     post:
       summary: Confirm user password
