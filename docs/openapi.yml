@@ -1064,6 +1064,91 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /getVoiceSettings:
+    get:
+      summary: Get Voice Settings
+      description: |
+        Fetches voice settings for a specific voice from ElevenLabs.
+        Maps the technical settings to application terminology.
+
+        **Mappings:**
+        - `speaking_rate` ← `speed`
+        - `performance_intensity` ← `style`
+        - `expressiveness` ← `stability`
+        - `voice_fidelity` ← `similarity_boost`
+        - `enhance_voice_character` ← `use_speaker_boost`
+      operationId: getVoiceSettings
+      tags:
+        - Voices
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      parameters:
+        - name: voice_id
+          in: query
+          description: Standard ElevenLabs Voice ID
+          required: true
+          schema:
+            type: string
+            example: "21m00Tcm4TlvDq8ikWAM"
+      responses:
+        "200":
+          description: Voice settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          voice_id:
+                            type: string
+                          settings:
+                            type: object
+                            description: Current voice settings
+                            properties:
+                              speaking_rate:
+                                type: number
+                                description: "speed [0.5-2.0] default 1.0"
+                              performance_intensity:
+                                type: number
+                                description: "style [0-1]"
+                              expressiveness:
+                                type: number
+                                description: "stability [0-1] (0=more emotional, 1=monotone)"
+                              voice_fidelity:
+                                type: number
+                                description: "similarity_boost [0-1] (0=less close, 1=more close)"
+                              enhance_voice_character:
+                                type: boolean
+                                description: "use_speaker_boost (true/false)"
+              example:
+                status: "success"
+                message: "Voice settings retrieved successfully"
+                data:
+                  voice_id: "21m00Tcm4TlvDq8ikWAM"
+                  settings:
+                    speaking_rate: 1.0
+                    performance_intensity: 0.0
+                    expressiveness: 0.5
+                    voice_fidelity: 0.75
+                    enhance_voice_character: true
+        "400":
+          description: Bad Request - Missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /confirmPassword:
     post:
       summary: Confirm user password
