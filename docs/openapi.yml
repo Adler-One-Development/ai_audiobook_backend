@@ -137,7 +137,21 @@ components:
           description: When the comment was created
         block_id:
           type: string
-          description: ID of the block this comment is attached to
+          description: ID of the block this comment is attached to (optional for chapter comments)
+        chapter_id:
+          type: string
+          description: ID of the chapter this comment is attached to (optional for block/word comments)
+        quote:
+          type: string
+          description: Selected text for word-level comments
+        range:
+          type: object
+          properties:
+            start:
+              type: integer
+            end:
+              type: integer
+          description: Selection range for word-level comments
         resolved:
           type: boolean
           description: Whether the comment has been resolved
@@ -147,7 +161,6 @@ components:
         - user_name
         - text
         - timestamp
-        - block_id
         - resolved
 
     BookMetadata:
@@ -4307,15 +4320,29 @@ paths:
               type: object
               required:
                 - studio_id
-                - block_id
                 - text
               properties:
                 studio_id:
                   type: string
                 block_id:
                   type: string
+                  description: Required for block-level comments
+                chapter_id:
+                  type: string
+                  description: Required for chapter-level comments
                 text:
                   type: string
+                quote:
+                  type: string
+                  description: Selected text for word-level comments (requires block_id)
+                range:
+                  type: object
+                  description: Selection range for word-level comments (requires block_id)
+                  properties:
+                    start:
+                      type: integer
+                    end:
+                      type: integer
       responses:
         "201":
           description: Comment created successfully
@@ -4521,6 +4548,11 @@ paths:
           schema:
             type: string
         - name: block_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: chapter_id
           in: query
           required: false
           schema:

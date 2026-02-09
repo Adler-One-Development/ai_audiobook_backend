@@ -386,11 +386,12 @@ async function processManuscriptUpdate(ws, data) {
             
             const blocks = chapterToJson(chapter.title, chapter.content, voice_id);
             
-            // Sanitize blocks: ensure sub_type exists (default to 'p')
+            // Sanitize blocks: ensure sub_type exists
             if (Array.isArray(blocks)) {
-                blocks.forEach(block => {
+                blocks.forEach((block, index) => {
                     if (!block.sub_type) {
-                        block.sub_type = 'p';
+                        // First block is typically the chapter title -> h2
+                        block.sub_type = index === 0 ? 'h2' : 'p';
                     }
                 });
             }
