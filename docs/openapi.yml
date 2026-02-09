@@ -889,14 +889,31 @@ paths:
                         type: integer
                         description: Token expiration time in seconds
 
-  /editNodeSettings:
+  /editVoiceSettings:
     post:
-      summary: Edit Node Settings
+      summary: Create Custom Voice with Modified Settings
       description: |
-        Updates the voice settings for a specific node.
-      operationId: editNodeSettings
+        Creates a custom voice by remixing an existing voice with modified settings.
+
+        **Workflow:**
+        1. Remixes the specified voice with custom description (if provided)
+        2. Retrieves the original voice data from the voices table
+        3. Creates a persistent custom voice with the remixed settings
+        4. Stores the custom voice in the `custom_voices` table with studio association
+
+        **Voice Settings Mapping:**
+        - `speaking_rate` → `speed` (0.5-2.0)
+        - `performance_intensity` → `style` (0-1)
+        - `expressiveness` → `stability` (inverted: 1 - expressiveness)
+        - `voice_fidelity` → `similarity_boost` (0-1)
+        - `enhance_voice_character` → `use_speaker_boost` (boolean)
+
+        **Requires:**
+        - JWT Bearer token in Authorization header
+        - ElevenLabs API key in `eleven-labs-api-key` header
+      operationId: editVoiceSettings
       tags:
-        - Nodes
+        - Voices
       security:
         - BearerAuth: []
         - ElevenLabsAuth: []
@@ -908,44 +925,56 @@ paths:
               type: object
               required:
                 - voice_id
+                - studio_id
               properties:
                 voice_id:
                   type: string
-                  description: The ID of the voice
+                  description: The ID of the original voice to remix (from ElevenLabs or voices table)
+                  example: hpp4J3VqNfWAUOO0d1Us
+                studio_id:
+                  type: string
+                  description: The studio ID to associate the custom voice with
+                  example: XE4Ex5gBhDmqxXXcxNHJ
                 voice_description:
                   type: string
-                  description: Optional description of the voice
+                  description: Optional description for voice modification (will be prefixed with "Create an identical voice + ")
                   nullable: true
+                  example: with a deeper, more authoritative tone
                 speaking_rate:
                   type: number
                   format: double
-                  description: Speaking rate (0.5 - 2.0)
+                  description: Speaking rate/speed (0.5 - 2.0, default 1.0)
                   minimum: 0.5
                   maximum: 2.0
+                  example: 1.2
                 performance_intensity:
                   type: number
                   format: double
-                  description: Performance intensity (0 - 1)
+                  description: Performance intensity/style (0 - 1)
                   minimum: 0
                   maximum: 1
+                  example: 0.6
                 expressiveness:
                   type: number
                   format: double
-                  description: Expressiveness (0 - 1)
+                  description: Expressiveness/emotional range (0 - 1, inverted to stability)
                   minimum: 0
                   maximum: 1
+                  example: 0.8
                 voice_fidelity:
                   type: number
                   format: double
-                  description: Voice fidelity (0 - 1)
+                  description: Voice fidelity/similarity to original (0 - 1)
                   minimum: 0
                   maximum: 1
+                  example: 0.9
                 enhance_voice_character:
                   type: boolean
-                  description: Enhance voice character
+                  description: Enhance voice character/use speaker boost
+                  example: true
       responses:
         "200":
-          description: Settings updated successfully
+          description: Custom voice created successfully
           content:
             application/json:
               schema:
@@ -953,50 +982,83 @@ paths:
                   - $ref: "#/components/schemas/SuccessResponse"
                   - type: object
                     properties:
-                      voice_id:
-                        type:
-                        description: The final target voice ID.
-                        example:
-                      details:
+                      data:
                         type: object
-                        description: Detailed debug and verification information.
                         properties:
-                          original_voice_id:
+                          voice_id:
                             type: string
-                          created_voice_id:
-                            type: string
-                          settings_applied:
-                            type: boolean
-                          mapped_settings:
+                            description: The ID of the created custom voice
+                            example: "abc123xyz"
+                          details:
                             type: object
+                            description: Detailed debug and verification information
                             properties:
-                              speed:
-                                type: number
-                              style:
-                                type: number
-                              stability:
-                                type: number
-                              similarity_boost:
+                              original_voice_id:
+                                type: string
+                                description: The original voice ID that was remixed
+                              created_voice_id:
+                                type: string
+                                description: The newly created voice ID (same as voice_id)
+                              settings_applied:
                                 type: boolean
-                              description:
-                                type: string
-                          voice_details_fetched:
-                            type: object
-                            properties:
-                              labels:
-                                type: string
-                              description:
+                                description: Whether settings were successfully applied
+                              mapped_settings:
                                 type: object
-                                additionalProperties: true
+                                description: The settings that were mapped and applied
+                                properties:
+                                  speed:
+                                    type: number
+                                  style:
+                                    type: number
+                                  stability:
+                                    type: number
+                                  similarity_boost:
+                                    type: number
+                                  use_speaker_boost:
+                                    type: boolean
+                                  description:
+                                    type: string
+                              voice_details_fetched:
+                                type: object
+                                description: Details fetched from the original voice
+                                properties:
+                                  labels:
+                                    type: object
+                                  description:
+                                    type: string
+              example:
+                status: success
+                message: Voice settings processed successfully
+                data:
+                  voice_id: "abc123xyz"
+                  details:
+                    original_voice_id: "hpp4J3VqNfWAUOO0d1Us"
+                    created_voice_id: "abc123xyz"
+                    settings_applied: true
+                    mapped_settings:
+                      speed: 1.2
+                      style: 0.6
+                      stability: 0.2
+                      similarity_boost: 0.9
+                      use_speaker_boost: true
 
         "400":
-          description: Bad request - Validation error
+          description: Bad request - Validation error or missing required fields
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missing_voice_id:
+                  value:
+                    status: error
+                    message: "Missing required field: voice_id"
+                invalid_speaking_rate:
+                  value:
+                    status: error
+                    message: "speaking_rate must be between 0.5 and 2.0"
         "401":
-          description: Unauthorized
+          description: Unauthorized - Missing or invalid authentication
           content:
             application/json:
               schema:

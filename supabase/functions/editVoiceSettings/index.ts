@@ -5,6 +5,7 @@ import {
   successResponse,
 } from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
+import { supabaseClient } from "../_shared/supabase-client.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -34,11 +35,14 @@ Deno.serve(async (req) => {
     let enhance_voice_character: boolean | null = null;
 
     let voice_description: string | null = null;
+    let studio_id: string | null = null;
+
 
     try {
       const formData = await req.formData();
       voice_id = formData.get("voice_id") as string;
       voice_description = formData.get("voice_description") as string;
+      studio_id = formData.get("studio_id") as string;
       
       const speakingRateStr = formData.get("speaking_rate");
       if (speakingRateStr) speaking_rate = parseFloat(speakingRateStr as string);
@@ -198,6 +202,24 @@ Deno.serve(async (req) => {
         }
     }
 
+    // Query the original voice from the voices table for metadata and naming
+    let originalVoice: any = null;
+    try {
+        const { data, error: voiceQueryError } = await supabaseClient
+            .from("voices")
+            .select("name, fine_tuning")
+            .eq("voice_id", voice_id)
+            .single();
+        
+        if (voiceQueryError) {
+            console.error("Error querying original voice:", voiceQueryError);
+        } else {
+            originalVoice = data;
+        }
+    } catch (err) {
+        console.error("Exception querying original voice:", err);
+    }
+
     // Create the voice permanently
     let final_voice_id: string | null = null;
     if (generated_voice_id && voice_details) {
@@ -209,6 +231,10 @@ Deno.serve(async (req) => {
             ? voice_details.description 
             : `Voice remixed from ${voice_id} with custom settings`;
 
+        // Create voice name using original voice name
+        const originalName = originalVoice?.name || voice_id;
+        const voiceName = `${originalName}_remixed`;
+
         if (elevenLabsApiKey) {
             const createResponse = await fetch(createVoiceUrl, {
                 method: "POST",
@@ -217,7 +243,7 @@ Deno.serve(async (req) => {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    voice_name: `Remixed Voice ${new Date().toISOString()}`,
+                    voice_name: voiceName,
                     voice_description: voiceDescription,
                     generated_voice_id: generated_voice_id,
                     labels: voice_details.labels
@@ -227,11 +253,45 @@ Deno.serve(async (req) => {
             if (createResponse.ok) {
                 const createData = await createResponse.json();
                 final_voice_id = createData.voice_id;
+                
+                // Insert the custom voice into the database if studio_id is provided
+                if (final_voice_id && studio_id) {
+                    try {
+
+                        const { error: insertError } = await supabaseClient
+                            .from("custom_voices")
+                            .insert({
+                                voice_id: final_voice_id,
+                                name: `${createData.name}_remixed`,
+                                studio_id: studio_id,
+                                category: createData.category,
+                                fine_tuning: originalVoice?.fine_tuning,
+                                labels: createData.labels,
+                                description: createData.description,
+                                preview_url: createData.preview_url,
+                                verified_languages: createData.verified_languages,
+                                voice_settings: mappedSettings,
+                                original_voice_id: voice_id
+                            });
+
+                        
+                        if (insertError) {
+                            console.error("Error inserting custom voice into database:", insertError);
+                            // We don't fail the request if database insertion fails
+                        } else {
+                            console.log(`Successfully inserted custom voice ${final_voice_id} into database`);
+                        }
+                    } catch (dbError) {
+                        console.error("Exception inserting custom voice into database:", dbError);
+                        // We don't fail the request if database insertion fails
+                    }
+                }
             } else {
                 console.error("ElevenLabs Create Voice Error:", await createResponse.text());
             }
         }
     }
+
 
 
 

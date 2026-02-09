@@ -628,7 +628,7 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/generateAudioForProject/index.ts"
 
-[functions.editNodeSettings]
+[functions.changeVoiceSettings]
 enabled = true
-verify_jwt = true
-entrypoint = "./functions/editNodeSettings/index.ts"
+verify_jwt = false
+entrypoint = "./functions/changeVoiceSettings/index.ts"
