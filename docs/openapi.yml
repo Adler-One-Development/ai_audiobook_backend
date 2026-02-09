@@ -4460,9 +4460,6 @@ paths:
                   type: string
                 chapter_id:
                   type: string
-            example:
-              studio_id: "06bede21-9694-4a32-88f5-e966cfa13f4"
-              chapter_id: "0C8UHtgU0v0L9ViLmFpr"
                 chapter_name:
                   type: string
             example:
@@ -4484,6 +4481,23 @@ paths:
         - Studio
       requestBody:
         required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - chapter_id
+              properties:
+                studio_id:
+                  type: string
+                chapter_id:
+                  type: string
+            example:
+              studio_id: "06bede21-9694-4a32-88f5-e966cfa13f4"
+              chapter_id: "0C8UHtgU0v0L9ViLmFpr"
+      responses:
+        "200":
           description: Chapter duplicated successfully
           content:
             application/json:
@@ -4513,10 +4527,10 @@ paths:
             schema:
               type: object
               required:
-                 - studio_id
-                 - nickname
-                 - voice_id
-                 - override_globally
+                - studio_id
+                - nickname
+                - voice_id
+                - override_globally
               properties:
                 studio_id:
                   type: string
@@ -4559,8 +4573,8 @@ paths:
             schema:
               type: object
               required:
-                 - studio_id
-                 - cast_id
+                - studio_id
+                - cast_id
               properties:
                 studio_id:
                   type: string
@@ -4605,8 +4619,8 @@ paths:
             schema:
               type: object
               required:
-                 - studio_id
-                 - cast_id
+                - studio_id
+                - cast_id
               properties:
                 studio_id:
                   type: string
