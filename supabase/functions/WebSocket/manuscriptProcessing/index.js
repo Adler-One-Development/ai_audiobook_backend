@@ -557,6 +557,15 @@ async function processProjectCreation(ws, data) {
                     );
                 }
                 
+                // Sanitize blocks: ensure sub_type exists (default to 'p')
+                if (Array.isArray(blocks)) {
+                    blocks.forEach(block => {
+                        if (!block.sub_type) {
+                            block.sub_type = 'p';
+                        }
+                    });
+                }
+
                 generatedContent.push({
                     name: chapter.title,
                     blocks: blocks
