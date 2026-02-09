@@ -4306,7 +4306,12 @@ paths:
 
   /createComment:
     post:
-      summary: Create a new comment on a studio block
+      summary: Create a new comment on a studio block or chapter
+      description: |
+        Creates a comment. There are 3 types of comments:
+        1. **Chapter Comment**: Provide `chapter_id`. Leave `block_id` empty.
+        2. **Block Comment**: Provide `block_id`. Leave `chapter_id` empty.
+        3. **Word Comment**: Provide `block_id`, and (`quote` OR `range`). Leave `chapter_id` empty.
       operationId: createComment
       security:
         - BearerAuth: []
@@ -4326,18 +4331,19 @@ paths:
                   type: string
                 block_id:
                   type: string
-                  description: Required for block-level comments
+                  description: Required for Block and Word comments. Do NOT use for Chapter comments.
                 chapter_id:
                   type: string
-                  description: Required for chapter-level comments
+                  description: Required for Chapter comments. Do NOT use for Block or Word comments.
                 text:
                   type: string
+                  description: The comment content.
                 quote:
                   type: string
-                  description: Selected text for word-level comments (requires block_id)
+                  description: (Word Level/Optional) Selected text. Provide this OR `range`.
                 range:
                   type: object
-                  description: Selection range for word-level comments (requires block_id)
+                  description: (Word Level/Optional) Selection range. Provide this OR `quote`.
                   properties:
                     start:
                       type: integer
@@ -4535,7 +4541,12 @@ paths:
 
   /getAllComments:
     get:
-      summary: Get all comments for a studio or block
+      summary: Get comments for a studio, chapter, or block
+      description: |
+        Retrieves comments. Supports filtering by:
+        - `studio_id` (Required): Get all comments for the studio.
+        - `chapter_id` (Optional): Get all comments for a specific chapter.
+        - `block_id` (Optional): Get all comments for a specific block.
       operationId: getAllComments
       security:
         - BearerAuth: []
