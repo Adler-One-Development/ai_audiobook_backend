@@ -4630,12 +4630,6 @@ paths:
         "200":
           description: Cast member deleted successfully
 
-
-                commentNotFound:
-                  value:
-                    status: error
-                    message: Comment not found
-
   /editComment:
     put:
       summary: Edit a comment on a studio block
