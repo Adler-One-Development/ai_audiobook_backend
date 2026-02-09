@@ -120,33 +120,8 @@ Deno.serve(async (req) => {
             );
         }
 
-        // 3. Update EL Settings if globally overridden
-        if (override_globally && override_settings && elevenLabsApiKey) {
-            const elSettings = {
-                stability: override_settings.expressiveness ?? 0.5,
-                similarity_boost: override_settings["voice fidelity"] ?? 0.75,
-                style: override_settings.performance_intensity ?? 0,
-                use_speaker_boost:
-                    override_settings["enhance voice character"] ?? true,
-            };
-
-            const updateSettingsUrl =
-                `https://api.elevenlabs.io/v1/voices/${targetVoiceId}/settings/edit`;
-            const settingsResponse = await fetch(updateSettingsUrl, {
-                method: "POST",
-                headers: {
-                    "xi-api-key": elevenLabsApiKey,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(elSettings),
-            });
-            if (!settingsResponse.ok) {
-                console.error(
-                    "Failed to update EL settings",
-                    await settingsResponse.text(),
-                );
-            }
-        }
+        // Note: Voice settings are applied when the voice is created in addCastMember.
+        // We don't update ElevenLabs voice settings here to avoid modifying the isolated voice.
 
         const { error: updateError } = await adminClient
             .from("studio")

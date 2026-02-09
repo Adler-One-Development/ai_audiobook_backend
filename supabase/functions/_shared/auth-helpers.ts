@@ -77,7 +77,8 @@ export async function getAuthenticatedUser(
                     atob(base64)
                         .split("")
                         .map((c) =>
-                            "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+                            "%" +
+                            ("00" + c.charCodeAt(0).toString(16)).slice(-2)
                         )
                         .join(""),
                 );

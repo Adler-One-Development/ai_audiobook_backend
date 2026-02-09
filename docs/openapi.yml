@@ -4557,6 +4557,58 @@ paths:
         "200":
           description: Cast member added successfully
 
+  /getAllCastMembers:
+    get:
+      summary: Get all cast members
+      description: Retrieves all cast members for a studio.
+      operationId: getAllCastMembers
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      parameters:
+        - in: query
+          name: studio_id
+          required: true
+          schema:
+            type: string
+          description: The ID of the studio
+      responses:
+        "200":
+          description: Cast members retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        nickname:
+                          type: string
+                        original_voice_id:
+                          type: string
+                        voice_id:
+                          type: string
+                        override_globally:
+                          type: boolean
+                        override_settings:
+                          type: object
+        "400":
+          description: Missing required parameter
+        "404":
+          description: Studio not found
+        "500":
+          description: Internal server error
+
   /editCastMember:
     post:
       summary: Edit a cast member

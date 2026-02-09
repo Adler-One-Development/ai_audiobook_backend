@@ -77,22 +77,107 @@ Deno.serve(async (req) => {
             );
         }
 
-        // Logic 1: Handle Voice Settings Override (Remix)
-        // If override_globally is true, we update the settings of the provided voice_id.
-        // NOTE: We cannot easily "clone" to a new ID without samples.
-        // We assume voice_id IS the target voice to modify.
-
+        // Logic 1: Clone Voice using Audio Samples
         let targetVoiceId = voice_id;
 
         if (override_globally && override_settings) {
-            // Map settings
-            // speaking_rate -> stored in cast object (EL doesn't support setting this on voice)
-            // performance_intensity -> style
-            // expressiveness -> stability (Inverted?) -> User: "0 (more emotional) - 1(more monotone)"
-            // EL Stability: 0 (more variable/emotional), 1 (stable/monotone). So DIRECT mapping.
-            // voice fidelity -> similarity_boost
-            // enhance voice character -> use_speaker_boost
+            // 1. Get original voice details and samples
+            const voiceResponse = await fetch(
+                `https://api.elevenlabs.io/v1/voices/${voice_id}`,
+                { headers: { "xi-api-key": elevenLabsApiKey } },
+            );
 
+            if (!voiceResponse.ok) {
+                return new Response(
+                    JSON.stringify({
+                        status: "error",
+                        message:
+                            "Failed to fetch voice details from ElevenLabs",
+                    }),
+                    { status: 500, headers: corsHeaders },
+                );
+            }
+
+            const voiceDetails = await voiceResponse.json();
+            const samples = voiceDetails.samples || [];
+
+            if (samples.length === 0) {
+                return new Response(
+                    JSON.stringify({
+                        status: "error",
+                        message:
+                            "Voice has no samples to clone. Cannot create remix.",
+                    }),
+                    { status: 400, headers: corsHeaders },
+                );
+            }
+
+            // 2. Download all voice samples
+            const sampleFiles: { name: string; data: Blob }[] = [];
+            for (const sample of samples) {
+                const sampleResponse = await fetch(
+                    `https://api.elevenlabs.io/v1/voices/${voice_id}/samples/${sample.sample_id}/audio`,
+                    { headers: { "xi-api-key": elevenLabsApiKey } },
+                );
+
+                if (sampleResponse.ok) {
+                    sampleFiles.push({
+                        name: sample.file_name ||
+                            `sample_${sample.sample_id}.mp3`,
+                        data: await sampleResponse.blob(),
+                    });
+                }
+            }
+
+            if (sampleFiles.length === 0) {
+                return new Response(
+                    JSON.stringify({
+                        status: "error",
+                        message: "Failed to download voice samples",
+                    }),
+                    { status: 500, headers: corsHeaders },
+                );
+            }
+
+            // 3. Create new voice clone
+            const formData = new FormData();
+            formData.append("name", `${nickname} (Cast Member)`);
+            formData.append(
+                "description",
+                `Cloned from ${voiceDetails.name} for cast member ${nickname}`,
+            );
+
+            sampleFiles.forEach((file) => {
+                formData.append("files", file.data, file.name);
+            });
+
+            const cloneResponse = await fetch(
+                "https://api.elevenlabs.io/v1/voices/add",
+                {
+                    method: "POST",
+                    headers: { "xi-api-key": elevenLabsApiKey },
+                    body: formData,
+                },
+            );
+
+            if (!cloneResponse.ok) {
+                console.error(
+                    "Voice clone failed:",
+                    await cloneResponse.text(),
+                );
+                return new Response(
+                    JSON.stringify({
+                        status: "error",
+                        message: "Failed to clone voice",
+                    }),
+                    { status: 500, headers: corsHeaders },
+                );
+            }
+
+            const cloneResult = await cloneResponse.json();
+            targetVoiceId = cloneResult.voice_id;
+
+            // 4. Apply custom settings to the cloned voice
             const elSettings = {
                 stability: override_settings.expressiveness ?? 0.5,
                 similarity_boost: override_settings["voice fidelity"] ?? 0.75,
@@ -101,24 +186,17 @@ Deno.serve(async (req) => {
                     override_settings["enhance voice character"] ?? true,
             };
 
-            const updateSettingsUrl =
-                `https://api.elevenlabs.io/v1/voices/${targetVoiceId}/settings/edit`;
-            const settingsResponse = await fetch(updateSettingsUrl, {
-                method: "POST",
-                headers: {
-                    "xi-api-key": elevenLabsApiKey,
-                    "Content-Type": "application/json",
+            await fetch(
+                `https://api.elevenlabs.io/v1/voices/${targetVoiceId}/settings/edit`,
+                {
+                    method: "POST",
+                    headers: {
+                        "xi-api-key": elevenLabsApiKey,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(elSettings),
                 },
-                body: JSON.stringify(elSettings),
-            });
-
-            if (!settingsResponse.ok) {
-                console.error(
-                    "Failed to update voice settings",
-                    await settingsResponse.text(),
-                );
-                // Should we fail? Maybe warn.
-            }
+            );
         }
 
         // Logic 2: Add to Studio Cast
@@ -156,25 +234,11 @@ Deno.serve(async (req) => {
         let updatedChapters = studio.chapters;
         let chaptersModified = false;
 
-        if (override_globally && Array.isArray(updatedChapters)) {
-            // We are replacing 'original_voice_id' with 'targetVoiceId'.
-            // In this specific code path, they are the same (voice_id), so text replacement is no-op
-            // UNLESS user provided a DIFFERENT voice_id as input vs some "original" notion.
-            // The prompt says: "replacing id of that voice with voice_id in this cast object"
-            // If they are the same, this loop essentially just triggers an update to EL with potentially new settings active?
-            // Actually, if we updated the voice settings globally in EL (Logic 1), then any chapter using that voice ID
-            // will naturally use the new settings on next generation.
-            // Explicit replacement is only needed if IDs change.
-            // However, to satisfy "replace all occurrences ... and update ... in supabase as well as elevenlabs",
-            // we will proceed with the update call to ensure consistency.
-
-            // Wait, if IDs are identical, `block.voice_id === targetVoiceId` is already true.
-            // Detailed Check: If `voice_id` (input) is intended to replace some *other* ID?
-            // No, prompt says: "replace all occurences of og voice_id".
-            // `og voice_id` likely refers to `voice_id` passed in request.
-            // So we are just confirming the assignment.
-
-            // To be robust: We iterate.
+        if (
+            override_globally && targetVoiceId !== voice_id &&
+            Array.isArray(updatedChapters)
+        ) {
+            // Replace old voice_id with new targetVoiceId in all chapter blocks
             for (let i = 0; i < updatedChapters.length; i++) {
                 const chapter = updatedChapters[i];
                 if (
@@ -184,28 +248,49 @@ Deno.serve(async (req) => {
                     let chapterChanged = false;
                     const newBlocks = chapter.content_json.blocks.map(
                         (block: any) => {
-                            if (block.voice_id === voice_id) { // Match Original
-                                // For now, no-op if IDs are same, but if we had a new ID, we'd swap.
-                                // User might expect a "refresh" of the chapter content in EL?
-                                // Let's assume we just need to ensure EL has this content.
-                                // Actually, if we just updated settings, we might not *need* to push content again unless IDs changed.
-                                return block;
+                            if (block.voice_id === voice_id) {
+                                chapterChanged = true;
+                                return { ...block, voice_id: targetVoiceId };
                             }
                             return block;
                         },
                     );
 
-                    // If we successfully "remixed" to a NEW ID, we would have `chapterChanged = true`.
-                    // Since we are using the same ID (due to API constraints), we skip the heavy EL update loop
-                    // to save latency, UNLESS we want to force an update.
-                    // Let's Skip EL update if ID hasn't changed, as settings update is global.
+                    if (chapterChanged) {
+                        // Update the chapter in memory
+                        updatedChapters[i] = {
+                            ...chapter,
+                            content_json: {
+                                ...chapter.content_json,
+                                blocks: newBlocks,
+                            },
+                        };
+
+                        // Update chapter in ElevenLabs Studio
+                        await fetch(
+                            `https://api.elevenlabs.io/v1/studio/projects/${studio_id}/chapters/${chapter.id}`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "xi-api-key": elevenLabsApiKey,
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                    content: updatedChapters[i].content_json,
+                                }),
+                            },
+                        );
+                    }
                 }
             }
         }
 
         const { error: updateError } = await adminClient
             .from("studio")
-            .update({ cast: updatedCast }) // We didn't change chapters in DB if IDs are same
+            .update({
+                cast: updatedCast,
+                chapters: updatedChapters,
+            })
             .eq("id", studio_id);
 
         if (updateError) {

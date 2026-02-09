@@ -82,6 +82,34 @@ Deno.serve(async (req) => {
 
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const elevenLabsKey = Deno.env.get("ELEVEN_LABS_KEY")!;
+
+    // 1. Rename in ElevenLabs
+    let elevenLabsSuccess = false;
+    try {
+      const elevenLabsResponse = await fetch(
+        `https://api.elevenlabs.io/v1/studio/projects/${studio_id}/chapters/${chapter_id}`,
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": elevenLabsKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: chapter_name,
+          }),
+        },
+      );
+
+      if (elevenLabsResponse.ok) {
+        elevenLabsSuccess = true;
+      } else {
+        const errorData = await elevenLabsResponse.text();
+        console.error("ElevenLabs rename failed:", errorData);
+      }
+    } catch (error) {
+      console.error("ElevenLabs API error:", error);
+    }
 
     // 2. Rename in Supabase Studio Table
     const { data: studio, error: studioError } = await adminClient
@@ -139,7 +167,10 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         status: "success",
-        message: "Chapter renamed successfully",
+        message: elevenLabsSuccess
+          ? "Chapter renamed successfully in both Supabase and ElevenLabs"
+          : "Chapter renamed in Supabase (ElevenLabs update failed)",
+        elevenlabs_updated: elevenLabsSuccess,
       }),
       { status: 200, headers: corsHeaders },
     );
