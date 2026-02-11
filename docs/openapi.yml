@@ -1164,49 +1164,49 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               required:
-                - nodes
+                - block_id
+                - project_id
+                - chapter_id
               properties:
                 block_id:
                   type: string
                   description: Optional ID of the block being processed
-                nodes:
-                  type: array
-                  items:
-                    type: object
-                    required:
-                      - type
-                    properties:
-                      text:
-                        type: string
-                      type:
-                        type: string
-                        enum: [tts_node, other]
-                      voice_id:
-                        type: string
-            example:
-              nodes:
-                - text: "While the other bears, like his brother Boris and his sister Bella, were sliding down glaciers on their tummies shouting,"
-                  type: "tts_node"
-                  voice_id: "hpp4J3VqNfWAUOO0d1Us"
-                - text: " Wheee! So refreshing!"
-                  type: "tts_node"
-                  voice_id: "hpp4J3VqNfWAUOO0d1Us"
-                - text: " , Barnaby was hiding behind a large rock, chattering his teeth."
-                  type: "tts_node"
-                  voice_id: "hpp4J3VqNfWAUOO0d1Us"
-              block_id: "RBntcylVbKVXN1UxXvaT"
+                project_id:
+                  type: string
+                  format: uuid
+                  description: The UUID of the project
+                chapter_id:
+                  type: string
+                  description: The ID of the chapter
+
       responses:
         "200":
-          description: Streaming audio data (MP3)
+          description: Audio generation successful
           content:
-            audio/mpeg:
+            application/json:
               schema:
-                type: string
-                format: binary
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Audio generated and uploaded successfully
+                  file_url:
+                    type: string
+                    description: Public URL of the uploaded audio file
+                  file_id:
+                    type: string
+                    description: ID of the file in the gallery
+                  block_id:
+                    type: string
+                  gallery_id:
+                    type: string
         "400":
           description: Bad Request - Missing nodes or invalid input
           content:

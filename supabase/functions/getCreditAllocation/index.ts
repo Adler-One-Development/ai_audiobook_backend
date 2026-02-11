@@ -4,7 +4,6 @@ import {
     successResponse,
 } from "../_shared/response-helpers.ts";
 import { createClientFromRequest } from "../_shared/supabase-client.ts";
-import { getOrganization } from "../_shared/auth-helpers.ts"; // using getOrg to get user easily, or just getUser
 
 Deno.serve(async (req) => {
     if (req.method === "OPTIONS") return handleCorsPreFlight();
