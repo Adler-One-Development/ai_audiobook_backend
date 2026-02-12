@@ -643,3 +643,32 @@ entrypoint = "./functions/getVoiceSettings/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/generateAudioForParagraph/index.ts"
+[functions.duplicateChapter]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/duplicateChapter/index.ts"
+
+[functions.createComment]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/createComment/index.ts"
+
+[functions.getAllComments]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getAllComments/index.ts"
+
+[functions.addCastMember]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/addCastMember/index.ts"
+
+[functions.editCastMember]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/editCastMember/index.ts"
+
+[functions.deleteCastMember]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/deleteCastMember/index.ts"

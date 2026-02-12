@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
         const url = new URL(req.url);
         const studio_id = url.searchParams.get("studio_id");
         const block_id = url.searchParams.get("block_id");
+        const chapter_id = url.searchParams.get("chapter_id");
 
         // Validate studio_id
         if (!studio_id) {
@@ -97,6 +98,13 @@ Deno.serve(async (req) => {
         if (block_id) {
             comments = comments.filter((comment) =>
                 comment.block_id === block_id
+            );
+        }
+
+        // Filter by chapter_id if provided
+        if (chapter_id) {
+            comments = comments.filter((comment) =>
+                comment.chapter_id === chapter_id
             );
         }
 

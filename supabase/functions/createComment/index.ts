@@ -54,15 +54,38 @@ Deno.serve(async (req) => {
         }
 
         // Parse request body
-        const { studio_id, block_id, text } = await req.json();
+        const { studio_id, block_id, chapter_id, text, quote, range } =
+            await req.json();
 
         // Validate request body
-        if (!studio_id || !block_id || !text) {
+        if (!studio_id || !text) {
+            return new Response(
+                JSON.stringify({
+                    status: "error",
+                    message: "Missing required fields: studio_id, text",
+                }),
+                { status: 400, headers: corsHeaders },
+            );
+        }
+
+        // Must have either block_id OR chapter_id
+        if (!block_id && !chapter_id) {
+            return new Response(
+                JSON.stringify({
+                    status: "error",
+                    message: "Must provide either block_id or chapter_id",
+                }),
+                { status: 400, headers: corsHeaders },
+            );
+        }
+
+        // Validation for word-level comments
+        if ((quote || range) && !block_id) {
             return new Response(
                 JSON.stringify({
                     status: "error",
                     message:
-                        "Missing required fields: studio_id, block_id, text",
+                        "Word-level comments (quote/range) require block_id",
                 }),
                 { status: 400, headers: corsHeaders },
             );
@@ -117,28 +140,40 @@ Deno.serve(async (req) => {
             );
         }
 
-        // Validate block_id exists in studio chapters
-        let blockExists = false;
+        // Context Validation
+        let contextExists = false;
         if (Array.isArray(studio.chapters)) {
-            for (const chapter of studio.chapters) {
-                if (chapter.content_json?.blocks) {
-                    for (const block of chapter.content_json.blocks) {
-                        if (block.block_id === block_id) {
-                            blockExists = true;
+            if (chapter_id && !block_id) {
+                // Validate Chapter Exists
+                contextExists = studio.chapters.some((ch: any) =>
+                    ch.id === chapter_id
+                );
+            } else if (block_id) {
+                // Validate Block Exists
+                for (const chapter of studio.chapters) {
+                    if (chapter.content_json?.blocks) {
+                        if (
+                            chapter.content_json.blocks.some((b: any) =>
+                                b.block_id === block_id
+                            )
+                        ) {
+                            contextExists = true;
                             break;
                         }
                     }
-                    if (blockExists) break;
                 }
             }
         }
 
-        if (!blockExists) {
+        if (!contextExists) {
+            const errorMsg = chapter_id && !block_id
+                ? `Chapter ID '${chapter_id}' not found`
+                : `Block ID '${block_id}' not found`;
+
             return new Response(
                 JSON.stringify({
                     status: "error",
-                    message:
-                        `Block ID '${block_id}' not found in studio chapters`,
+                    message: errorMsg,
                 }),
                 { status: 400, headers: corsHeaders },
             );
@@ -151,8 +186,12 @@ Deno.serve(async (req) => {
             user_name: userData.full_name || user.email || "Unknown User",
             text: text.trim(),
             timestamp: new Date().toISOString(),
-            block_id: block_id,
             resolved: false,
+            // Conditional fields
+            ...(block_id && { block_id }),
+            ...(chapter_id && { chapter_id }),
+            ...(quote && { quote }),
+            ...(range && { range }),
         };
 
         // Append comment to studio.comments array

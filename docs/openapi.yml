@@ -137,7 +137,21 @@ components:
           description: When the comment was created
         block_id:
           type: string
-          description: ID of the block this comment is attached to
+          description: ID of the block this comment is attached to (optional for chapter comments)
+        chapter_id:
+          type: string
+          description: ID of the chapter this comment is attached to (optional for block/word comments)
+        quote:
+          type: string
+          description: Selected text for word-level comments
+        range:
+          type: object
+          properties:
+            start:
+              type: integer
+            end:
+              type: integer
+          description: Selection range for word-level comments
         resolved:
           type: boolean
           description: Whether the comment has been resolved
@@ -147,7 +161,6 @@ components:
         - user_name
         - text
         - timestamp
-        - block_id
         - resolved
 
     BookMetadata:
@@ -272,6 +285,11 @@ components:
         gallery_id:
           type: string
           format: uuid
+        cast:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+          description: List of cast members (uses same structure as comments for now)
       required:
         - book
         - chapters
@@ -4628,7 +4646,12 @@ paths:
 
   /createComment:
     post:
-      summary: Create a new comment on a studio block
+      summary: Create a new comment on a studio block or chapter
+      description: |
+        Creates a comment. There are 3 types of comments:
+        1. **Chapter Comment**: Provide `chapter_id`. Leave `block_id` empty.
+        2. **Block Comment**: Provide `block_id`. Leave `chapter_id` empty.
+        3. **Word Comment**: Provide `block_id`, and (`quote` OR `range`). Leave `chapter_id` empty.
       operationId: createComment
       security:
         - BearerAuth: []
@@ -4642,15 +4665,30 @@ paths:
               type: object
               required:
                 - studio_id
-                - block_id
                 - text
               properties:
                 studio_id:
                   type: string
                 block_id:
                   type: string
+                  description: Required for Block and Word comments. Do NOT use for Chapter comments.
+                chapter_id:
+                  type: string
+                  description: Required for Chapter comments. Do NOT use for Block or Word comments.
                 text:
                   type: string
+                  description: The comment content.
+                quote:
+                  type: string
+                  description: (Word Level/Optional) Selected text. Provide this OR `range`.
+                range:
+                  type: object
+                  description: (Word Level/Optional) Selection range. Provide this OR `quote`.
+                  properties:
+                    start:
+                      type: integer
+                    end:
+                      type: integer
       responses:
         "201":
           description: Comment created successfully
@@ -4692,56 +4730,292 @@ paths:
               properties:
                 studio_id:
                   type: string
-                  description: The ID of the studio containing the comment
-                  example: "4VjB54RZqdmqRjxXrAZl"
                 comment_id:
                   type: string
-                  format: uuid
-                  description: The UUID of the comment to delete
-                  example: "550e8400-e29b-41d4-a716-446655440000"
       responses:
         "200":
           description: Comment deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SuccessResponse"
-              example:
-                status: success
-                message: Comment deleted successfully
-        "400":
-          description: Bad Request - Missing required fields
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: "Missing required fields: studio_id, comment_id"
-        "403":
-          description: Forbidden - User is not authorized to delete this comment
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                status: error
-                message: Unauthorized to delete this comment
         "404":
-          description: Not Found - Studio or comment not found
+          description: Comment not found
+
+  /deleteChapter:
+    delete:
+      summary: Delete a chapter
+      description: Deletes a chapter from Supabase and ElevenLabs.
+      operationId: deleteChapter
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - chapter_id
+              properties:
+                studio_id:
+                  type: string
+                  description: ElevenLabs Project ID
+                chapter_id:
+                  type: string
+            example:
+              studio_id: "06bede21-9694-4a32-88f5-e966cfa13f4"
+              chapter_id: "0C8UHtgU0v0L9ViLmFpr"
+      responses:
+        "200":
+          description: Chapter deleted successfully
+        "502":
+          description: Failed to delete from ElevenLabs
+
+  /renameChapter:
+    post:
+      summary: Rename a chapter
+      description: Renames a chapter in Supabase (and attempts ElevenLabs update).
+      operationId: renameChapter
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - chapter_id
+                - chapter_name
+              properties:
+                studio_id:
+                  type: string
+                chapter_id:
+                  type: string
+                chapter_name:
+                  type: string
+            example:
+              studio_id: "06bede21-9694-4a32-88f5-e966cfa13f4"
+              chapter_id: "0C8UHtgU0v0L9ViLmFpr"
+              chapter_name: "New Chapter Name"
+      responses:
+        "200":
+          description: Chapter renamed successfully
+
+  /duplicateChapter:
+    post:
+      summary: Duplicate a chapter
+      description: Creates a copy of a chapter and inserts it immediately after the original.
+      operationId: duplicateChapter
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - chapter_id
+              properties:
+                studio_id:
+                  type: string
+                chapter_id:
+                  type: string
+            example:
+              studio_id: "06bede21-9694-4a32-88f5-e966cfa13f4"
+              chapter_id: "0C8UHtgU0v0L9ViLmFpr"
+      responses:
+        "200":
+          description: Chapter duplicated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                studioNotFound:
-                  value:
-                    status: error
-                    message: Studio not found
-                commentNotFound:
-                  value:
-                    status: error
-                    message: Comment not found
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  chapter:
+                    $ref: "#/components/schemas/StudioChapter"
+
+  /addCastMember:
+    post:
+      summary: Add a new cast member
+      description: Adds a cast member, optionally remixing voice settings and replacing global overrides.
+      operationId: addCastMember
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - nickname
+                - voice_id
+                - override_globally
+              properties:
+                studio_id:
+                  type: string
+                nickname:
+                  type: string
+                voice_id:
+                  type: string
+                override_globally:
+                  type: boolean
+                override_settings:
+                  type: object
+                  properties:
+                    speaking_rate:
+                      type: number
+                    performance_intensity:
+                      type: number
+                    expressiveness:
+                      type: number
+                    "voice fidelity":
+                      type: number
+                    "enhance voice character":
+                      type: boolean
+      responses:
+        "200":
+          description: Cast member added successfully
+
+  /getAllCastMembers:
+    get:
+      summary: Get all cast members
+      description: Retrieves all cast members for a studio.
+      operationId: getAllCastMembers
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      parameters:
+        - in: query
+          name: studio_id
+          required: true
+          schema:
+            type: string
+          description: The ID of the studio
+      responses:
+        "200":
+          description: Cast members retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        nickname:
+                          type: string
+                        original_voice_id:
+                          type: string
+                        voice_id:
+                          type: string
+                        override_globally:
+                          type: boolean
+                        override_settings:
+                          type: object
+        "400":
+          description: Missing required parameter
+        "404":
+          description: Studio not found
+        "500":
+          description: Internal server error
+
+  /editCastMember:
+    post:
+      summary: Edit a cast member
+      description: Updates cast member details and settings.
+      operationId: editCastMember
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - cast_id
+              properties:
+                studio_id:
+                  type: string
+                cast_id:
+                  type: string
+                nickname:
+                  type: string
+                voice_id:
+                  type: string
+                override_globally:
+                  type: boolean
+                override_settings:
+                  type: object
+                  properties:
+                    speaking_rate:
+                      type: number
+                    performance_intensity:
+                      type: number
+                    expressiveness:
+                      type: number
+                    "voice fidelity":
+                      type: number
+                    "enhance voice character":
+                      type: boolean
+      responses:
+        "200":
+          description: Cast member updated successfully
+
+  /deleteCastMember:
+    delete:
+      summary: Delete a cast member
+      description: Deletes cast member and reverts voice substitution in chapters.
+      operationId: deleteCastMember
+      security:
+        - BearerAuth: []
+      tags:
+        - Studio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studio_id
+                - cast_id
+              properties:
+                studio_id:
+                  type: string
+                cast_id:
+                  type: string
+      responses:
+        "200":
+          description: Cast member deleted successfully
 
   /editComment:
     put:
@@ -4843,7 +5117,12 @@ paths:
 
   /getAllComments:
     get:
-      summary: Get all comments for a studio or block
+      summary: Get comments for a studio, chapter, or block
+      description: |
+        Retrieves comments. Supports filtering by:
+        - `studio_id` (Required): Get all comments for the studio.
+        - `chapter_id` (Optional): Get all comments for a specific chapter.
+        - `block_id` (Optional): Get all comments for a specific block.
       operationId: getAllComments
       security:
         - BearerAuth: []
@@ -4856,6 +5135,11 @@ paths:
           schema:
             type: string
         - name: block_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: chapter_id
           in: query
           required: false
           schema:
@@ -5596,140 +5880,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
-
-  /deleteChapter:
-    delete:
-      summary: Delete a chapter
-      description: |
-        Deletes a chapter by calling ElevenLabs API and removing it from the local database.
-        Also removes associated comments.
-        Requires authentication and ElevenLabs API key.
-      operationId: deleteChapter
-      tags:
-        - Audiobook Management
-      security:
-        - BearerAuth: []
-        - ElevenLabsAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                projectId:
-                  type: string
-                  format: uuid
-                  description: The ID of the project.
-                chapterId:
-                  type: string
-                  description: The ID of the chapter to delete.
-              required:
-                - projectId
-                - chapterId
-      responses:
-        "200":
-          description: Chapter deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: Chapter deleted successfully
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /renameChapter:
-    post:
-      summary: Rename a chapter
-      description: |
-        Renames a chapter by calling ElevenLabs API and updating the local database.
-        Requires authenticated user with access to the project.
-      operationId: renameChapter
-      tags:
-        - Audiobook Management
-      security:
-        - BearerAuth: []
-        - ElevenLabsAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - projectId
-                - chapterId
-                - newName
-              properties:
-                projectId:
-                  type: string
-                  format: uuid
-                  description: The ID of the project
-                chapterId:
-                  type: string
-                  description: The ID of the chapter to rename
-                newName:
-                  type: string
-                  description: The new name for the chapter
-      responses:
-        "200":
-          description: Chapter renamed successfully
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          chapterId:
-                            type: string
-                          newName:
-                            type: string
-        "400":
-          description: Missing parameters or headers
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Project or Chapter not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal server error or ElevenLabs API failure
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "502":
-          description: Bad Gateway (ElevenLabs API Error)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
 
   /convertChapter:
     post:

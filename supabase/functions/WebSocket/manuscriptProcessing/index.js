@@ -557,6 +557,16 @@ async function processProjectCreation(ws, data) {
                     );
                 }
                 
+                // Sanitize blocks: ensure sub_type exists
+                if (Array.isArray(blocks)) {
+                    blocks.forEach((block, index) => {
+                        if (!block.sub_type) {
+                            // First block is typically the chapter title -> h2
+                            block.sub_type = index === 0 ? 'h2' : 'p';
+                        }
+                    });
+                }
+
                 generatedContent.push({
                     name: chapter.title,
                     blocks: blocks

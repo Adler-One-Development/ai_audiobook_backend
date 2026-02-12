@@ -133,6 +133,15 @@ wss.on('connection', (ws) => {
                     // Changes Detected
                     console.log('Changes detected! Updating ecosystem...');
                     
+                    // Sanitize content blocks: ensure sub_type exists (default to 'p')
+                    if (content.blocks && Array.isArray(content.blocks)) {
+                        content.blocks.forEach(block => {
+                            if (!block.sub_type) {
+                                block.sub_type = 'p';
+                            }
+                        });
+                    }
+
                     const updateSuccess = await updateChapterContent(project_id, chapter_id, content, access_token, eleven_labs_api_key);
                     
                     if (updateSuccess) {

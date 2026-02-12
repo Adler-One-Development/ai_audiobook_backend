@@ -1,154 +1,171 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import {
-  errorResponse,
-  handleCorsPreFlight,
-  successResponse,
-} from "../_shared/response-helpers.ts";
-import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
-import { createAdminClient } from "../_shared/supabase-client.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return handleCorsPreFlight();
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "DELETE, OPTIONS",
+        "Access-Control-Allow-Headers":
+          "authorization, x-client-info, apikey, content-type",
+      },
+    });
   }
 
-  // Only accept DELETE requests
-  if (req.method !== "DELETE") {
-    return errorResponse("Method not allowed. Use DELETE.", 405);
-  }
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Content-Type": "application/json",
+  };
 
   try {
-    const { user, error: authError } = await getAuthenticatedUser(req);
-    if (authError || !user) return authError;
-
-    // Get ElevenLabs API Key
-    const elevenLabsApiKey = req.headers.get("eleven-labs-api-key");
-    if (!elevenLabsApiKey) {
-      return errorResponse("Missing header: eleven-labs-api-key", 400);
-    }
-
-    // Parse form data
-    let formData;
-    try {
-      formData = await req.formData();
-    } catch (e) {
-      return errorResponse("Invalid form data", 400);
-    }
-
-    const projectId = formData.get("projectId");
-    const chapterId = formData.get("chapterId");
-
-    if (!projectId || !chapterId) {
-      return errorResponse("Missing parameter: projectId or chapterId", 400);
-    }
-
-    const adminClient = createAdminClient();
-
-    // 1. Get project and verify access + get studio_id
-    const { data: project, error: projectError } = await adminClient
-      .from("projects")
-      .select("studio_id")
-      .eq("id", projectId)
-      .or(`owner_id.eq.${user.id},access_levels.cs.{${user.id}}`)
-      .single();
-
-    if (projectError || !project) {
-        if (projectError?.code === "PGRST116") {
-             return errorResponse("Project not found or access denied", 404);
-        }
-      console.error("Error fetching project:", projectError);
-      return errorResponse("Failed to fetch project", 500);
-    }
-
-    if (!project.studio_id) {
-        return errorResponse("Project does not have a studio associated", 404);
-    }
-
-     // 2. Fetch studio data (chapters, comments)
-     const { data: studio, error: studioError } = await adminClient
-     .from("studio")
-     .select("chapters, comments")
-     .eq("id", project.studio_id)
-     .single();
-
-   if (studioError || !studio) {
-       if (studioError?.code === "PGRST116") {
-            return errorResponse("Studio not found", 404);
-       }
-     console.error("Error fetching studio:", studioError);
-     return errorResponse("Failed to fetch studio", 500);
-   }
-
-   const chaptersData = studio.chapters || [];
-   const commentsData = studio.comments || [];
-
-   // Check if chapter exists
-   const chapterIndex = chaptersData.findIndex((c: any) => c.id === chapterId);
-   if (chapterIndex === -1) {
-       return errorResponse("Chapter not found in database", 404);
-   }
-
-    // 3. Call ElevenLabs API to delete chapter
-    const elevenLabsResponse = await fetch(
-      `https://api.elevenlabs.io/v1/studio/projects/${project.studio_id}/chapters/${chapterId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "xi-api-key": elevenLabsApiKey,
-        },
-      }
-    );
-
-    if (!elevenLabsResponse.ok) {
-      const errorText = await elevenLabsResponse.text();
-      console.error("ElevenLabs API Error:", errorText);
-      return errorResponse(
-        `ElevenLabs API Error: ${elevenLabsResponse.statusText}`,
-        elevenLabsResponse.status
+    // Get the authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: corsHeaders },
       );
     }
 
-    // 4. Update Database
-    
-    // Get the chapter to be deleted
-    const deletedChapter = chaptersData[chapterIndex];
-    
-    // Collect block IDs from the deleted chapter
-    const blockIdsToDelete = new Set();
-    if (deletedChapter.content_json && Array.isArray(deletedChapter.content_json.blocks)) {
-         deletedChapter.content_json.blocks.forEach((block: any) => {
-             if (block.block_id) {
-                 blockIdsToDelete.add(block.block_id);
-             }
-         });
-    }
-
-    // Remove chapter
-    chaptersData.splice(chapterIndex, 1);
-
-    // Remove associated comments
-    const updatedComments = commentsData.filter((comment: any) => !blockIdsToDelete.has(comment.block_id));
-
-    const { error: updateError } = await adminClient
-      .from("studio")
-      .update({ 
-          chapters: chaptersData,
-          comments: updatedComments
-       })
-      .eq("id", project.studio_id);
-
-    if (updateError) {
-      console.error("Error updating studio:", updateError);
-      return errorResponse("Failed to update studio data", 500);
-    }
-
-    return successResponse({
-      status: "success",
-      message: "Chapter deleted successfully",
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseClient = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: { Authorization: authHeader },
+      },
     });
 
+    // Get the authenticated user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser();
+
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: corsHeaders },
+      );
+    }
+
+    // Parse request body
+    const { studio_id, chapter_id } = await req.json();
+
+    if (!studio_id || !chapter_id) {
+      return new Response(
+        JSON.stringify({
+          status: "error",
+          message: "Missing required fields: studio_id, chapter_id",
+        }),
+        { status: 400, headers: corsHeaders },
+      );
+    }
+
+    // Create admin client for database operations
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch studio to get ElevenLabs API Key (if stored) or use env
+    // In this project, it seems we pass keys or use env.
+    // For backend APIs like this, we should use the env var ELEVEN_LABS_KEY
+    const elevenLabsApiKey = Deno.env.get("ELEVEN_LABS_KEY");
+
+    if (!elevenLabsApiKey) {
+      return new Response(
+        JSON.stringify({
+          status: "error",
+          message: "Server configuration error: Missing ElevenLabs API Key",
+        }),
+        { status: 500, headers: corsHeaders },
+      );
+    }
+
+    // 1. Delete from ElevenLabs
+    const elevenLabsUrl =
+      `https://api.elevenlabs.io/v1/projects/${studio_id}/chapters/${chapter_id}`;
+    const elResponse = await fetch(elevenLabsUrl, {
+      method: "DELETE",
+      headers: {
+        "xi-api-key": elevenLabsApiKey,
+      },
+    });
+
+    if (!elResponse.ok) {
+      const errorText = await elResponse.text();
+      console.error("ElevenLabs Delete Error:", errorText);
+      // We might continue to delete from Supabase if it's already gone from EL,
+      // but for now let's report error unless it's 404
+      if (elResponse.status !== 404) {
+        return new Response(
+          JSON.stringify({
+            status: "error",
+            message: `Failed to delete from ElevenLabs: ${errorText}`,
+          }),
+          { status: 502, headers: corsHeaders },
+        );
+      }
+    }
+
+    // 2. Delete from Supabase Studio Table
+    // Fetch current studio data
+    const { data: studio, error: studioError } = await adminClient
+      .from("studio")
+      .select("chapters")
+      .eq("id", studio_id)
+      .single();
+
+    if (studioError) {
+      return new Response(
+        JSON.stringify({
+          status: "error",
+          message: "Studio not found",
+        }),
+        { status: 404, headers: corsHeaders },
+      );
+    }
+
+    if (studio && Array.isArray(studio.chapters)) {
+      const updatedChapters = studio.chapters.filter((ch: any) =>
+        ch.id !== chapter_id
+      );
+
+      const { error: updateError } = await adminClient
+        .from("studio")
+        .update({ chapters: updatedChapters })
+        .eq("id", studio_id);
+
+      if (updateError) {
+        console.error("Supabase Update Error:", updateError);
+        return new Response(
+          JSON.stringify({
+            status: "error",
+            message: "Failed to update studio in database",
+          }),
+          { status: 500, headers: corsHeaders },
+        );
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        status: "success",
+        message: "Chapter deleted successfully",
+      }),
+      { status: 200, headers: corsHeaders },
+    );
   } catch (error) {
-    console.error("Unexpected error:", error);
-    return errorResponse("An unexpected error occurred", 500);
+    console.error("Error in deleteChapter:", error);
+    return new Response(
+      JSON.stringify({
+        status: "error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      }),
+      { status: 500, headers: corsHeaders },
+    );
   }
 });
