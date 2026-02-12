@@ -1,10 +1,11 @@
 import { WebSocketServer } from 'ws';
+import process from "node:process";
 import http from 'http';
 
 const PORT = process.env.PORT || 8084;
 
 // Simple deep equal helper
-function deepEqual(obj1, obj2) {
+function deepComparison(obj1, obj2) {
     if (obj1 === obj2) return true;
     if (typeof obj1 !== "object" || obj1 === null || typeof obj2 !== "object" || obj2 === null) return false;
     
@@ -14,7 +15,7 @@ function deepEqual(obj1, obj2) {
     if (keys1.length !== keys2.length) return false;
     
     for (const key of keys1) {
-        if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) return false;
+        if (!keys2.includes(key) || !deepComparison(obj1[key], obj2[key])) return false;
     }
     return true;
 }
@@ -92,14 +93,73 @@ wss.on('connection', (ws) => {
     });
 });
 
-async function processParagraphAudioGeneration(ws, projectId, chapterId, blockId, accessToken, elevenLabsApiKey, forceRegenerate = false) {
+// Helper to call internal Edge Function
+async function fetchBlockAudioLog(projectId, studioId, chapterId, blockId, accessToken, supabaseUrl) {
+    try {
+        const url = `${supabaseUrl}/functions/v1/getBlockAudioLog?project_id=${projectId}&studio_id=${studioId}&chapter_id=${chapterId}&block_id=${blockId}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            console.error(`fetchBlockAudioLog failed: ${response.status}`);
+            return null;
+        }
+
+        const data = await response.json();
+        // data: { status: "success", exists: boolean, block_snapshot: ... }
+        if (data && data.exists) {
+            return data.block_snapshot;
+        }
+        return null;
+    } catch (error) {
+        console.error("fetchBlockAudioLog error:", error);
+        return null;
+    }
+}
+
+async function saveBlockAudioLog(projectId, studioId, chapterId, blockId, blockSnapshot, accessToken, supabaseUrl) {
+    try {
+        const url = `${supabaseUrl}/functions/v1/saveBlockAudioLog`;
+        const formData = new FormData();
+        formData.append('project_id', projectId);
+        formData.append('studio_id', studioId);
+        formData.append('chapter_id', chapterId);
+        formData.append('block_id', blockId);
+        formData.append('block_snapshot', JSON.stringify(blockSnapshot));
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+                // Content-Type is set automatically with boundary for FormData
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error(`saveBlockAudioLog failed: ${response.status} - ${text}`);
+        } else {
+             console.log("Block audio log saved successfully.");
+        }
+    } catch (error) {
+        console.error("saveBlockAudioLog error:", error);
+    }
+}
+
+async function processParagraphAudioGeneration(ws, projectId, chapterId, blockId, accessToken, elevenLabsApiKey, _forceRegenerate = false) {
     const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hskaqvjruqzmgrwxmxxd.supabase.co';
-    const session = sessionState.get(ws);
+    const _session = sessionState.get(ws);
 
     try {
         ws.send(JSON.stringify({ status: 'validating_request', message: 'Validating request...' }));
         
-        // 1. Fetch current block content from DB
+        // 1. Fetch current block content from DB (to get text + voice_id)
         ws.send(JSON.stringify({ status: 'fetching_content', message: 'Fetching block content...' }));
         
         const currentBlockContent = await fetchBlockContent(projectId, chapterId, blockId, accessToken, SUPABASE_URL);
@@ -108,44 +168,38 @@ async function processParagraphAudioGeneration(ws, projectId, chapterId, blockId
              throw new Error("Failed to fetch block content or block not found");
         }
 
-        // 2. Check content change
-        // If session.lastBlockContent is null, treat as 'changed' (first run), 
-        // OR strictly check against it?
-        // Let's compare with session state. If null, it's effectively "new/changed".
-        const isChanged = !deepEqual(currentBlockContent, session.lastBlockContent);
-        
-        // 3. Check if file exists in storage
-        ws.send(JSON.stringify({ status: 'checking_cache', message: 'Checking audio cache...' }));
-        
-        const studioId = currentBlockContent.studioId; // We need to update fetchBlockContent to return this
+        const studioId = currentBlockContent.studioId;
         if (!studioId) {
              throw new Error("Could not determine studio_id from block fetch");
         }
-        
-        // Construct public URL to check HEAD
+
+        // Remove studioId from object before comparison/saving to keep snapshot clean if strictly needed?
+        // But fetchBlockContent returns it. Let's keep a clean snapshot for comparison.
+        const cleanBlockSnapshot = { ...currentBlockContent };
+        delete cleanBlockSnapshot.studioId;
+
+        // 2. Retrieve last snapshot from logs
+        ws.send(JSON.stringify({ status: 'checking_cache', message: 'Checking audio logs...' }));
+        const lastSnapshot = await fetchBlockAudioLog(projectId, studioId, chapterId, blockId, accessToken, SUPABASE_URL);
+
+        // 3. Check if file exists in storage
         const fileUrl = `${SUPABASE_URL}/storage/v1/object/public/audio_files/${studioId}/blocks/${blockId}.txt`;
         const fileExists = await checkFileExists(fileUrl);
-        
-        console.log(`State Check - Changed: ${isChanged}, Exists: ${fileExists}, Force: ${forceRegenerate}`);
 
-        // Logic
-        // 1) Force Regenerate -> Generate
-        // 2) Change + Exists -> Overwrite (Generate)
-        // 3) Change + !Exists -> Generate
-        // 4) !Change + !Exists -> Generate
-        // 5) !Change + Exists -> Return Existing (Skip)
-        
-        if (!forceRegenerate && !isChanged && fileExists) {
+        // 4. Compare
+        const isChanged = !deepComparison(cleanBlockSnapshot, lastSnapshot);
+        console.log(`State Check - Changed: ${isChanged}, Exists: ${fileExists}`);
+
+        // Logic (ignoring forceRegenerate as requested)
+        // If file exists AND content hasn't changed -> Return existing
+        if (fileExists && !isChanged) {
              console.log("No changes and file exists. Returning existing URL:", fileUrl);
-             
-             // Update session state just in case (though equal)
-             session.lastBlockContent = currentBlockContent;
              
              ws.send(JSON.stringify({ 
                 status: 'complete', 
                 message: 'Content unchanged, audio exists.', 
                 data: {
-                    file_id: "", // Placeholder as we didn't DB query
+                    file_id: "", 
                     url: fileUrl,
                     block_id: blockId,
                     cached: true
@@ -154,7 +208,7 @@ async function processParagraphAudioGeneration(ws, projectId, chapterId, blockId
             return;
         }
 
-        // Else: Generate
+        // Else: Generate & Save Log
         ws.send(JSON.stringify({ status: 'generating_audio', message: 'Generating audio for paragraph...' }));
 
         const generateUrl = `${SUPABASE_URL}/functions/v1/generateAudioForParagraph`;
@@ -180,8 +234,8 @@ async function processParagraphAudioGeneration(ws, projectId, chapterId, blockId
 
         const generateData = await generateResponse.json();
         
-        // Update session state with the content we just generated for
-        session.lastBlockContent = currentBlockContent;
+        // Save the log (Fire and forget, or await? Await is safer to ensure it's logged)
+        await saveBlockAudioLog(projectId, studioId, chapterId, blockId, cleanBlockSnapshot, accessToken, SUPABASE_URL);
 
         // Complete
         ws.send(JSON.stringify({ 
@@ -268,6 +322,11 @@ async function fetchBlockContent(projectId, chapterId, blockId, accessToken, sup
                      const errText = await projectResp.text();
                      console.error("Project fetch failed:", errText);
                  }
+                
+                // User requirement: EXCLUDE comments from fetchBlockContent response
+                if (block.comments) {
+                    delete block.comments;
+                }
 
                 return { ...block, studioId };
             } else {

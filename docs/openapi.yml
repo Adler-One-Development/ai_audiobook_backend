@@ -573,6 +573,67 @@ paths:
             type: string
             description: User JWT access token (for database permissions).
 
+  /previewAudioForParagraph:
+    get:
+      summary: Preview Audio for Paragraph (WebSocket)
+      description: |
+        **WebSocket Endpoint**
+
+        Connect to this endpoint via WebSocket (`wss://`) to preview audio for a specific paragraph block.
+        It checks for existing audio files and reuses them if the content matches the last snapshot.
+
+        **Flow:**
+        1. Connect to WebSocket.
+        2. Send JSON payload with block details.
+        3. Server validates request and checks cache.
+        4. Server returns status updates or cached file URL.
+        5. If changed, server generates new audio and returns it.
+
+        ### Request Payload (Send as JSON message)
+        ```json
+        {
+            "project_id": "...",
+            "chapter_id": "...",
+            "block_id": "...",
+            "access_token": "YOUR_JWT_TOKEN_HERE",
+            "eleven_labs_api_key": "..."
+        }
+        ```
+      operationId: previewAudioForParagraph
+      tags:
+        - WebSockets
+      servers:
+        - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/previewAudioForParagraph
+          description: Supabase Edge Function
+      responses:
+        "101":
+          description: Switching Protocols - WebSocket Connection Established
+      x-websocket-payload:
+        type: object
+        required:
+          - project_id
+          - chapter_id
+          - block_id
+          - access_token
+          - eleven_labs_api_key
+        properties:
+          project_id:
+            type: string
+            format: uuid
+            description: The UUID of the project.
+          chapter_id:
+            type: string
+            description: The ID of the chapter.
+          block_id:
+            type: string
+            description: The ID of the block to preview.
+          access_token:
+            type: string
+            description: User JWT access token.
+          eleven_labs_api_key:
+            type: string
+            description: ElevenLabs API key.
+
   /signUp:
     post:
       summary: Register a new user
