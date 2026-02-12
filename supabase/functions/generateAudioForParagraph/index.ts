@@ -34,12 +34,12 @@ Deno.serve(async (req) => {
             return errorResponse("Invalid form data", 400);
         }
         
-        const project_id = formData.get("projectId") as string;
-        const chapter_id = formData.get("chapterId") as string;
-        const block_id = formData.get("blockId") as string;
+        const project_id = (formData.get("project_id") || formData.get("projectId")) as string;
+        const chapter_id = (formData.get("chapter_id") || formData.get("chapterId")) as string;
+        const block_id = (formData.get("block_id") || formData.get("blockId")) as string;
 
         if (!project_id || !chapter_id || !block_id) {
-            return errorResponse("Missing required fields: project_id, chapter_id, and block_id", 400);
+            return errorResponse("Missing required fields: project_id (or projectId), chapter_id (or chapterId), and block_id (or blockId)", 400);
         }
 
         console.log(`Processing block ${block_id} from chapter ${chapter_id} in project ${project_id}`);
@@ -148,12 +148,13 @@ Deno.serve(async (req) => {
         const audioBlobs: Blob[] = [];
 
         try {
-            // Step 1: Download all audio segments to memory blobs
+            // Step 1: Download all audio segments to memory blobs (PCM)
             for (let i = 0; i < ttsNodes.length; i++) {
                 const node = ttsNodes[i];
-                console.log(`Generating audio for node ${i + 1}/${ttsNodes.length} (Voice: ${node.voice_id})`);
+                console.log(`Generating audio for node ${i + 1}/${ttsNodes.length} (Voice: ${node.voice_id}, Text Len: ${node.text.length})`);
+                console.log(`Node Text Preview: "${node.text.substring(0, 50)}..."`);
 
-                const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${node.voice_id}?output_format=mp3_44100_128`, {
+                const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${node.voice_id}?output_format=pcm_44100`, {
                     method: "POST",
                     headers: {
                         "xi-api-key": elevenLabsApiKey,
@@ -175,29 +176,42 @@ Deno.serve(async (req) => {
                 if (!blob || blob.size === 0) {
                      throw new Error(`Empty response body for node ${i}`);
                 }
+                console.log(`Generated PCM blob for node ${i}: ${blob.size} bytes`);
                 audioBlobs.push(blob);
             }
 
             // Step 2: Stitch audio files into memory buffer
-            let totalSize = 0;
+            let totalPcmSize = 0;
             const fileBuffers: Uint8Array[] = [];
 
             for (const blob of audioBlobs) {
-                totalSize += blob.size;
+                totalPcmSize += blob.size;
                 const buffer = new Uint8Array(await blob.arrayBuffer());
                 fileBuffers.push(buffer);
             }
+            
+            console.log(`Stitching ${audioBlobs.length} PCM blobs. Total PCM size: ${totalPcmSize} bytes`);
 
-            const stitchedBuffer = new Uint8Array(totalSize);
-            let offset = 0;
+            // Create WAV Header
+            const wavHeader = createWavHeader(totalPcmSize);
+            const totalSize = wavHeader.length + totalPcmSize;
+
+            const finalBuffer = new Uint8Array(totalSize);
+            
+            // Write Header
+            finalBuffer.set(wavHeader, 0);
+            
+            // Write PCM Data
+            let offset = wavHeader.length;
             for (const buffer of fileBuffers) {
-                stitchedBuffer.set(buffer, offset);
+                finalBuffer.set(buffer, offset);
                 offset += buffer.length;
             }
+            console.log(`Stitching complete. Final WAV size: ${finalBuffer.length}`);
 
             // Step 3: Upload to storage using AudioStorage helper
             const audioStorage = new AudioStorage(adminClient);
-            const { fileId, url } = await audioStorage.uploadBlockAudio(studio_id, block_id, stitchedBuffer);
+            const { fileId, url } = await audioStorage.uploadBlockAudio(studio_id, block_id, finalBuffer);
 
             console.log(`Audio uploaded successfully. File ID: ${fileId}, URL: ${url}`);
 
@@ -246,4 +260,37 @@ Deno.serve(async (req) => {
         return errorResponse("Internal server error", 500);
     }
 });
+
+// Helper to create WAV header for Mono, 44.1kHz, 16-bit PCM
+function createWavHeader(pcmLength: number): Uint8Array {
+    const buffer = new ArrayBuffer(44);
+    const view = new DataView(buffer);
+
+    // RIFF chunk descriptor
+    writeString(view, 0, "RIFF");
+    view.setUint32(4, 36 + pcmLength, true); // ChunkSize
+    writeString(view, 8, "WAVE");
+
+    // fmt sub-chunk
+    writeString(view, 12, "fmt ");
+    view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
+    view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
+    view.setUint16(22, 1, true); // NumChannels (1)
+    view.setUint32(24, 44100, true); // SampleRate
+    view.setUint32(28, 44100 * 2, true); // ByteRate (SampleRate * NumChannels * BitsPerSample/8)
+    view.setUint16(32, 2, true); // BlockAlign (NumChannels * BitsPerSample/8)
+    view.setUint16(34, 16, true); // BitsPerSample
+
+    // data sub-chunk
+    writeString(view, 36, "data");
+    view.setUint32(40, pcmLength, true); // Subchunk2Size
+
+    return new Uint8Array(buffer);
+}
+
+function writeString(view: DataView, offset: number, string: string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+    }
+}
 

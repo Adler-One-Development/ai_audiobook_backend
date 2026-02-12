@@ -7,6 +7,7 @@ import {
 } from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
 import { createAdminClient } from "../_shared/supabase-client.ts";
+import { AudioStorage } from "../_shared/audio-storage.ts";
 
 // Define minimal types for JSON content structure
 interface ContentNode {
@@ -49,8 +50,8 @@ Deno.serve(async (req) => {
       return errorResponse("Invalid form data", 400);
     }
 
-    const projectId = formData.get("project_id");
-    const projectSnapshotId = formData.get("project_snapshot_id");
+    const projectId = formData.get("project_id") as string;
+    const projectSnapshotId = formData.get("project_snapshot_id") as string;
 
     if (!projectId || !projectSnapshotId) {
       return errorResponse("Missing parameter: project_id or project_snapshot_id", 400);
@@ -155,67 +156,11 @@ Deno.serve(async (req) => {
           );
       }
       
-      // Download audio to temp file
-      const tempFilePath = await Deno.makeTempFile({ suffix: ".mp3" });
-      console.log(`Downloading audio stream to temp file: ${tempFilePath}`);
+      // Get Blob from response instead of creating temp file
+      const audioBlob = await streamResponse.blob();
       
-      const file = await Deno.open(tempFilePath, { write: true, create: true });
-      await streamResponse.body?.pipeTo(file.writable);
-      
-      // Upload to Supabase Storage
-      const fileContent = await Deno.readFile(tempFilePath);
-      const fileName = `${crypto.randomUUID()}.mp3`;
-      
-      const { data: _uploadData, error: uploadError } = await adminClient.storage
-          .from("files")
-          .upload(fileName, fileContent, {
-              contentType: "audio/mpeg",
-              upsert: false
-          });
-      
-      if (uploadError) {
-          console.error("Failed to upload file to storage:", uploadError);
-          return errorResponse("Failed to upload audio file", 500);
-      }
-
-      // Get Public URL
-      const { data: publicUrlData } = adminClient.storage
-          .from("files")
-          .getPublicUrl(fileName);
-          
-      const fileUrl = publicUrlData.publicUrl;
-      const fileId = crypto.randomUUID();
-
-      // Update Gallery if ID exists
-      if (galleryId) {
-          console.log(`Updating gallery ${galleryId}...`);
-          
-          const { data: gallery, error: galleryError } = await adminClient
-              .from("galleries")
-              .select("files")
-              .eq("id", galleryId)
-              .single();
-              
-          if (!galleryError && gallery) {
-              const currentFiles = gallery.files || [];
-              const newFile = {
-                  id: fileId,
-                  url: fileUrl,
-                  projectId: projectId, // Optional: Tagging file with project ID
-                  type: "full_project_audio",
-                  createdAt: new Date().toISOString()
-              };
-              
-              await adminClient
-                  .from("galleries")
-                  .update({ files: [...currentFiles, newFile] })
-                  .eq("id", galleryId);
-          } else {
-              console.warn("Could not find gallery to update");
-          }
-      } else {
-          console.warn("No gallery_id found for project. Skipping gallery update.");
-      }
+      const audioStorage = new AudioStorage(adminClient);
+      const { fileId, url: fileUrl } = await audioStorage.uploadAudiobookAudio(studioId, audioBlob);
 
       // --- DEDUCT CREDITS ---
       const { error: deductionError } = await adminClient.from("credits_allocation")

@@ -14,11 +14,11 @@ BASE_URL="https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1"
 ELEVEN_LABS_API_KEY="sk_d545137c23e3098d622e593988bc4e2691554f05a701b0e8"
 
 # Test credentials - UPDATE THESE
-TEST_EMAIL=""
-TEST_PASSWORD=""
-TEST_PROJECT_ID=""
-TEST_CHAPTER_ID=""
-TEST_BLOCK_ID=""
+TEST_EMAIL="nlazarus@texasgrowthfactory.com"
+TEST_PASSWORD="abcDEF@1234"
+TEST_PROJECT_ID="610e2401-a2f7-47e1-b96a-ac6dc976bd64"
+TEST_CHAPTER_ID="SW33iI9Whtofpt78qu8h"
+TEST_BLOCK_ID="28LYWXv8PaCicsye4FwL"
 
 # Colors for output
 RED='\033[0;31m'

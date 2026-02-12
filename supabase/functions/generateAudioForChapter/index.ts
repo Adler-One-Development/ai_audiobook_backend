@@ -7,6 +7,7 @@ import {
 } from "../_shared/response-helpers.ts";
 import { getAuthenticatedUser } from "../_shared/auth-helpers.ts";
 import { createAdminClient } from "../_shared/supabase-client.ts";
+import { AudioStorage } from "../_shared/audio-storage.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -14,6 +15,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log("Request Headers:", JSON.stringify(Object.fromEntries(req.headers.entries())));
+    const authHeader = req.headers.get("Authorization");
+    console.log("Auth Header present:", !!authHeader);
+    if (authHeader) console.log("Auth Header start:", authHeader.substring(0, 20) + "...");
+
     const { user, error: authError } = await getAuthenticatedUser(req);
     if (authError || !user) return authError;
 
@@ -140,64 +146,18 @@ Deno.serve(async (req) => {
           );
       }
       
-      // Download audio to temp file
-      const tempFilePath = await Deno.makeTempFile({ suffix: ".mp3" });
-      console.log(`Downloading audio stream to temp file: ${tempFilePath}`);
-      
-      const file = await Deno.open(tempFilePath, { write: true, create: true });
-      await streamResponse.body?.pipeTo(file.writable);
-      
-      // Upload to Supabase Storage
-      const fileContent = await Deno.readFile(tempFilePath);
-      const fileName = `${crypto.randomUUID()}.mp3`;
-      
-      const { data: uploadData, error: uploadError } = await adminClient.storage
-          .from("files")
-          .upload(fileName, fileContent, {
-              contentType: "audio/mpeg",
-              upsert: false
-          });
-      
-      if (uploadError) {
-          console.error("Failed to upload file to storage:", uploadError);
-          return errorResponse("Failed to upload audio file", 500);
+      // Convert response to Blob
+      const audioBlob = await streamResponse.blob();
+      if (!audioBlob || audioBlob.size === 0) {
+          throw new Error("Empty audio response from ElevenLabs");
       }
-
-      // Get Public URL
-      const { data: publicUrlData } = adminClient.storage
-          .from("files")
-          .getPublicUrl(fileName);
-          
-      const fileUrl = publicUrlData.publicUrl;
-      const fileId = crypto.randomUUID();
-
-      // Update Gallery if ID exists
-      if (galleryId) {
-          console.log(`Updating gallery ${galleryId}...`);
-          
-          const { data: gallery, error: galleryError } = await adminClient
-              .from("galleries")
-              .select("files")
-              .eq("id", galleryId)
-              .single();
-              
-          if (!galleryError && gallery) {
-              const currentFiles = gallery.files || [];
-              const newFile = {
-                  id: fileId,
-                  url: fileUrl
-              };
-              
-              await adminClient
-                  .from("galleries")
-                  .update({ files: [...currentFiles, newFile] })
-                  .eq("id", galleryId);
-          } else {
-              console.warn("Could not find gallery to update");
-          }
-      } else {
-          console.warn("No gallery_id found for project. Skipping gallery update.");
-      }
+      
+      const audioStorage = new AudioStorage(adminClient);
+      const { fileId, url: fileUrl } = await audioStorage.uploadChapterAudio(
+          project.studio_id!, 
+          chapterId as string,
+          audioBlob
+      );
 
       // --- DEDUCT CREDITS ---
       const { error: deductionError } = await adminClient.from("credits_allocation")

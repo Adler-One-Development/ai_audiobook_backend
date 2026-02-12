@@ -1,0 +1,16 @@
+{
+  "name": "preview-audio-for-paragraph",
+  "version": "1.0.0",
+  "description": "WebSocket server for paragraph audio generation",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

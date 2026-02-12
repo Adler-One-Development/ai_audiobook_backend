@@ -1,0 +1,16 @@
+{
+  "name": "process-chapter-audio-generation",
+  "version": "1.0.0",
+  "description": "WebSocket server for chapter conversion and audio generation",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

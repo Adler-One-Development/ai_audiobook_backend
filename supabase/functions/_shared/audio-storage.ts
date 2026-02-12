@@ -17,9 +17,20 @@ export class AudioStorage {
   private async uploadFile(
     path: string,
     fileContent: ArrayBuffer | Uint8Array | Blob,
-    contentType: string = "audio/mpeg"
+    contentType: string = "text/plain"
   ): Promise<{ fileId: string; url: string }> {
-    const { error } = await this.client.storage
+    let size = 0;
+    if (fileContent instanceof Blob) {
+        size = fileContent.size;
+    } else {
+        size = fileContent.byteLength;
+    }
+    console.log(`[AudioStorage] Uploading file to path: ${path}, Size: ${size} bytes`);
+
+    
+    console.log(`[AudioStorage] Attempting upload to bucket '${this.bucketName}' at path '${path}'`);
+    
+    const { data: uploadData, error } = await this.client.storage
       .from(this.bucketName)
       .upload(path, fileContent, {
         contentType,
@@ -27,13 +38,18 @@ export class AudioStorage {
       });
 
     if (error) {
-      console.error(`Error uploading file to ${path}:`, error);
+      console.error(`[AudioStorage] Upload FAILED:`, error);
+      console.error(`[AudioStorage] Error details:`, JSON.stringify(error, null, 2));
       throw new Error(`Failed to upload file: ${error.message}`);
     }
+
+    console.log(`[AudioStorage] Upload SUCCESS. Data:`, JSON.stringify(uploadData, null, 2));
 
     const { data: publicUrlData } = this.client.storage
       .from(this.bucketName)
       .getPublicUrl(path);
+
+    console.log(`[AudioStorage] Generated Public URL: ${publicUrlData.publicUrl}`);
 
     // We generate a new ID for the file record reference in our database, 
     // even though the storage path is stable.
@@ -59,37 +75,43 @@ export class AudioStorage {
     blockId: string,
     fileContent: ArrayBuffer | Uint8Array | Blob
   ) {
-    const path = `audio_files/${studioId}/blocks/${blockId}.mp3`;
-    return this.uploadFile(path, fileContent, "audio/mpeg");
+    const path = `${studioId}/blocks/${blockId}.txt`;
+    // We use "text/plain" as the content type because of the extension,
+    // though the content is binary audio.
+    return this.uploadFile(path, fileContent, "text/plain");
   }
 
   /**
    * Function 2: Generating audio for chapter
-   * Path: audio_files/{studio_id}/chapters/{chapter_id}.txt
+   * Path: {studio_id}/chapters/{chapter_id}.mp3
    */
   uploadChapterAudio(
     studioId: string,
     chapterId: string,
     fileContent: ArrayBuffer | Uint8Array | Blob
   ) {
-    const path = `audio_files/${studioId}/chapters/${chapterId}.mp3`;
-    return this.uploadFile(path, fileContent, "audio/mpeg");
+    const path = `${studioId}/chapters/${chapterId}.txt`;
+    // We use "text/plain" as the content type because of the extension,
+    // though the content is binary audio.
+    return this.uploadFile(path, fileContent, "text/plain");
   }
 
   /**
    * Function 3: Generating audio for audiobook
-   * Path: audio_files/{studio_id}/complete_audiobook/{studio_id}.txt
+   * Path: {studio_id}/complete_audiobook/{studio_id}.mp3
    */
   uploadAudiobookAudio(
     studioId: string,
     fileContent: ArrayBuffer | Uint8Array | Blob
   ) {
     // Prompt: "Check if an audio file for the specific studio_id already exists and remove it... Save the file using the studio_id."
-    // Path: audio_files/{studio_id}/complete_audiobook/{studio_id}.mp3
-    const path = `audio_files/${studioId}/complete_audiobook/${studioId}.mp3`;
+    // Path: {studio_id}/complete_audiobook/{studio_id}.txt
+    const path = `${studioId}/complete_audiobook/${studioId}.txt`;
     
     // Explicit removal check as requested, though upsert handles replacement.
     // We'll trust upsert for atomic replacement to ensure "latest version is saved".
-    return this.uploadFile(path, fileContent, "audio/mpeg");
+    // We use "text/plain" as the content type because of the extension,
+    // though the content is binary audio.
+    return this.uploadFile(path, fileContent, "text/plain");
   }
 }
