@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Configuration
+SUPABASE_URL="https://hskaqvjruqzmgrwxmxxd.supabase.co"
+PROJECT_ID="610e2401-a2f7-47e1-b96a-ac6dc976bd64"
+STUDIO_ID="PhCcwfkVN359j7Ktkszc"
+CHAPTER_ID="SW33iI9Whtofpt78qu8h"
+BLOCK_ID="28LYWXv8PaCicsye4FwL"
+ACCESS_TOKEN="eyJhbGciOiJFUzI1NiIsImtpZCI6IjFmYWY5N2IyLTM4NjQtNDQwZi1hNGE1LTQ3MmE2MzI1OTdjMCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2hza2FxdmpydXF6bWdyd3hteHhkLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI3YWQyMDFhZS1iY2M1LTRhYWUtOWQ0Yy02Y2NiZjM2MGFhMDgiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzcwOTIwMjE3LCJpYXQiOjE3NzA5MTY2MTcsImVtYWlsIjoibmxhemFydXNAdGV4YXNncm93dGhmYWN0b3J5LmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJubGF6YXJ1c0B0ZXhhc2dyb3d0aGZhY3RvcnkuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiN2FkMjAxYWUtYmNjNS00YWFlLTlkNGMtNmNjYmYzNjBhYTA4In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NzA5MTY2MTd9XSwic2Vzc2lvbl9pZCI6ImI2NWYyOWViLTVlYzYtNDg3MS1hNTlkLWFmMWFjNGRiMGI1MSIsImlzX2Fub255bW91cyI6ZmFsc2V9.WeohwIt3F7z4RczcYiVutYBSMi5SnYebF14YjuelawsfH54uMHq_N_9tEmT-hSCWY0p7m5HBUuwQ7NN--L5akw"
+
+# Endpoint
+URL="$SUPABASE_URL/functions/v1/getBlockAudioLog"
+
+echo "Testing getBlockAudioLog..."
+echo "URL: $URL"
+echo "Project ID: $PROJECT_ID"
+echo "Studio ID: $STUDIO_ID"
+echo "Chapter ID: $CHAPTER_ID"
+echo "Block ID: $BLOCK_ID"
+
+curl -X GET "$URL?project_id=$PROJECT_ID&studio_id=$STUDIO_ID&chapter_id=$CHAPTER_ID&block_id=$BLOCK_ID" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+
+echo -e "\n\nDone."

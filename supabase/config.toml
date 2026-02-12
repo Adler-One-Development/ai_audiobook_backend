@@ -628,21 +628,6 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/generateAudioForProject/index.ts"
 
-
-[functions.editVoiceSettings]
-enabled = true
-verify_jwt = false
-entrypoint = "./functions/editVoiceSettings/index.ts"
-
-[functions.getVoiceSettings]
-enabled = true
-verify_jwt = false
-entrypoint = "./functions/getVoiceSettings/index.ts"
-
-[functions.generateAudioForParagraph]
-enabled = true
-verify_jwt = false
-entrypoint = "./functions/generateAudioForParagraph/index.ts"
 [functions.duplicateChapter]
 enabled = true
 verify_jwt = false
@@ -672,3 +657,24 @@ entrypoint = "./functions/editCastMember/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/deleteCastMember/index.ts"
+
+
+[functions.editVoiceSettings]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/editVoiceSettings/index.ts"
+
+[functions.getVoiceSettings]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getVoiceSettings/index.ts"
+
+[functions.generateAudioForParagraph]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/generateAudioForParagraph/index.ts"
+
+[functions.getBlockAudioLog]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/getBlockAudioLog/index.ts"

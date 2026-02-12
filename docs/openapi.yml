@@ -360,6 +360,31 @@ components:
         - wordCount
         - estimatedCreditsUsed
 
+    BlockSnapshot:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+              type:
+                type: string
+                enum: [tts_node]
+              voice_id:
+                type: string
+            required:
+              - text
+              - type
+              - voice_id
+        block_id:
+          type: string
+      required:
+        - nodes
+        - block_id
+
 paths:
   /manuscript-processing:
     get:
@@ -5692,6 +5717,114 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /getBlockAudioLog:
+    get:
+      summary: Get audio generation log for a block
+      description: |
+        Retrieves the latest audio generation snapshot for a specific block.
+
+        Requires authenticated user.
+      operationId: getBlockAudioLog
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: project_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+        - in: query
+          name: studio_id
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: chapter_id
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: block_id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Block snapshot retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      exists:
+                        type: boolean
+                        description: Whether the block audio log exists
+                      block_snapshot:
+                        $ref: "#/components/schemas/BlockSnapshot"
+                        nullable: true
+                    required:
+                      - exists
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /saveBlockAudioLog:
+    post:
+      summary: Save (Upsert) audio generation log for a block
+      description: |
+        Inserts or updates the audio generation snapshot for a specific block.
+        Expects Multipart Form Data.
+
+        Requires authenticated user.
+      operationId: saveBlockAudioLog
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - project_id
+                - studio_id
+                - chapter_id
+                - block_id
+                - block_snapshot
+              properties:
+                project_id:
+                  type: string
+                  format: uuid
+                studio_id:
+                  type: string
+                chapter_id:
+                  type: string
+                block_id:
+                  type: string
+                block_snapshot:
+                  type: string
+                  format: json
+                  description: JSON string of the block snapshot
+      responses:
+        "200":
+          description: Log saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
