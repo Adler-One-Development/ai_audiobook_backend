@@ -573,6 +573,108 @@ paths:
             type: string
             description: User JWT access token (for database permissions).
 
+    ChapterSnapshot:
+      type: object
+      properties:
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentBlock"
+        chapter_id:
+          type: string
+      required:
+        - blocks
+        - chapter_id
+
+  /getChapterAudioLog:
+    get:
+      summary: Get latest audio generation log for a chapter
+      description: |
+        Retrieves the most recent audio generation snapshot for a specific chapter.
+        This is used for caching and change detection to avoid regenerating audio unnecessarily.
+
+        If no log exists, returns `exists: false`.
+      operationId: getChapterAudioLog
+      tags:
+        - Audio Generation
+      parameters:
+        - in: query
+          name: project_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: Project UUID
+        - in: query
+          name: studio_id
+          schema:
+            type: string
+          required: true
+          description: Studio ID
+        - in: query
+          name: chapter_id
+          schema:
+            type: string
+          required: true
+          description: Chapter ID
+      responses:
+        "200":
+          description: Chapter snapshot retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      exists:
+                        type: boolean
+                        description: Whether the chapter audio log exists
+                      chapter_snapshot:
+                        $ref: "#/components/schemas/ChapterSnapshot"
+                        nullable: true
+                    required:
+                      - exists
+
+  /saveChapterAudioLog:
+    post:
+      summary: Save or update audio generation log for a chapter
+      description: |
+        Saves the current state of a chapter as a snapshot after successful audio generation.
+        If a log already exists for this chapter, it updates the existing entry.
+      operationId: saveChapterAudioLog
+      tags:
+        - Audio Generation
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                project_id:
+                  type: string
+                  format: uuid
+                studio_id:
+                  type: string
+                chapter_id:
+                  type: string
+                chapter_snapshot:
+                  type: object
+                  description: JSON string of the chapter content
+              required:
+                - project_id
+                - studio_id
+                - chapter_id
+                - chapter_snapshot
+      responses:
+        "200":
+          description: Log saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
   /previewAudioForParagraph:
     get:
       summary: Preview Audio for Paragraph (WebSocket)
