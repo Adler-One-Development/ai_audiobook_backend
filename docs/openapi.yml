@@ -360,6 +360,31 @@ components:
         - wordCount
         - estimatedCreditsUsed
 
+    BlockSnapshot:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+              type:
+                type: string
+                enum: [tts_node]
+              voice_id:
+                type: string
+            required:
+              - text
+              - type
+              - voice_id
+        block_id:
+          type: string
+      required:
+        - nodes
+        - block_id
+
 paths:
   /manuscript-processing:
     get:
@@ -547,6 +572,269 @@ paths:
           access_token:
             type: string
             description: User JWT access token (for database permissions).
+
+    ChapterSnapshot:
+      type: object
+      properties:
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentBlock"
+        chapter_id:
+          type: string
+      required:
+        - blocks
+        - chapter_id
+
+  /getChapterAudioLog:
+    get:
+      summary: Get latest audio generation log for a chapter
+      description: |
+        Retrieves the most recent audio generation snapshot for a specific chapter.
+        This is used for caching and change detection to avoid regenerating audio unnecessarily.
+
+        If no log exists, returns `exists: false`.
+      operationId: getChapterAudioLog
+      tags:
+        - Audio Generation
+      parameters:
+        - in: query
+          name: project_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: Project UUID
+        - in: query
+          name: studio_id
+          schema:
+            type: string
+          required: true
+          description: Studio ID
+        - in: query
+          name: chapter_id
+          schema:
+            type: string
+          required: true
+          description: Chapter ID
+      responses:
+        "200":
+          description: Chapter snapshot retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      exists:
+                        type: boolean
+                        description: Whether the chapter audio log exists
+                      chapter_snapshot:
+                        $ref: "#/components/schemas/ChapterSnapshot"
+                        nullable: true
+                    required:
+                      - exists
+
+  /saveChapterAudioLog:
+    post:
+      summary: Save or update audio generation log for a chapter
+      description: |
+        Saves the current state of a chapter as a snapshot after successful audio generation.
+        If a log already exists for this chapter, it updates the existing entry.
+      operationId: saveChapterAudioLog
+      tags:
+        - Audio Generation
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                project_id:
+                  type: string
+                  format: uuid
+                studio_id:
+                  type: string
+                chapter_id:
+                  type: string
+                chapter_snapshot:
+                  type: object
+                  description: JSON string of the chapter content
+              required:
+                - project_id
+                - studio_id
+                - chapter_id
+                - chapter_snapshot
+      responses:
+        "200":
+          description: Log saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /previewAudioForParagraph:
+    get:
+      summary: Generate/Preview Audio for Paragraph (WebSocket)
+      description: |
+        **WebSocket Endpoint**
+
+        Connect to this endpoint via WebSocket (`wss://`) to preview audio for a specific paragraph block.
+        It checks for existing audio files and reuses them if the content matches the last snapshot.
+
+        **Flow:**
+        1. Connect to WebSocket.
+        2. Send JSON payload with block details.
+        3. Server validates request and checks cache.
+        4. Server returns status updates or cached file URL.
+        5. If changed, server generates new audio and returns it.
+
+        ### Request Payload (Send as JSON message)
+        ```json
+        {
+            "project_id": "...",
+            "chapter_id": "...",
+            "block_id": "...",
+            "access_token": "YOUR_JWT_TOKEN_HERE",
+            "eleven_labs_api_key": "..."
+        }
+        ```
+      operationId: generateAudioForParagraph
+      tags:
+        - WebSockets
+      servers:
+        - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/previewAudioForParagraph
+          description: Supabase Edge Function
+      responses:
+        "101":
+          description: Switching Protocols - WebSocket Connection Established
+      x-websocket-payload:
+        type: object
+        required:
+          - project_id
+          - chapter_id
+          - block_id
+          - access_token
+          - eleven_labs_api_key
+        properties:
+          project_id:
+            type: string
+            format: uuid
+            description: The UUID of the project.
+          chapter_id:
+            type: string
+            description: The ID of the chapter.
+          block_id:
+            type: string
+            description: The ID of the block to preview.
+          access_token:
+            type: string
+            description: User JWT access token.
+          eleven_labs_api_key:
+            type: string
+            description: ElevenLabs API key.
+
+  /previewAudioForChapter:
+    get:
+      summary: Generate Audio for Chapter (WebSocket)
+      description: |
+        **WebSocket Endpoint**
+
+        Connect to this endpoint via WebSocket (`wss://`) to generate audio for an entire chapter.
+        It handles conversion, snapshot polling, and audio generation with caching.
+
+        **Flow:**
+        1. Connect to WebSocket.
+        2. Send JSON payload with chapter details.
+        3. Server checks cache (returns existing if unchanged).
+        4. If new: Server triggers `convertChapter`.
+        5. Server polls for new `ChapterSnapshot`.
+        6. Server triggers `generateAudioForChapter`.
+        7. Returns final audio file URL.
+
+        ### Request Payload
+        ```json
+        {
+            "project_id": "...",
+            "chapter_id": "...",
+            "access_token": "...",
+            "eleven_labs_api_key": "..."
+        }
+        ```
+      operationId: generateAudioForChapter
+      tags:
+        - WebSockets
+      servers:
+        - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/previewAudioForChapter
+      responses:
+        "101":
+          description: Switching Protocols
+      x-websocket-payload:
+        type: object
+        required:
+          - project_id
+          - chapter_id
+          - access_token
+          - eleven_labs_api_key
+        properties:
+          project_id:
+            type: string
+            format: uuid
+          chapter_id:
+            type: string
+          access_token:
+            type: string
+          eleven_labs_api_key:
+            type: string
+
+  /generateCompleteAudio:
+    get:
+      summary: Generate Complete Audio for Project (WebSocket)
+      description: |
+        **WebSocket Endpoint**
+
+        Connect to this endpoint via WebSocket (`wss://`) to generate audio for the entire project.
+
+        **Flow:**
+        1. Connect to WebSocket.
+        2. Send JSON payload with project details.
+        3. Server triggers `convertProject`.
+        4. Server polls for new `ProjectSnapshot`.
+        5. Server triggers `generateAudioForProject`.
+        6. Returns final audio file URL (converted to MPEG if configured).
+
+        ### Request Payload
+        ```json
+        {
+            "project_id": "...",
+            "access_token": "...",
+            "eleven_labs_api_key": "..."
+        }
+        ```
+      operationId: generateCompleteAudio
+      tags:
+        - WebSockets
+      servers:
+        - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/generateCompleteAudio
+      responses:
+        "101":
+          description: Switching Protocols
+      x-websocket-payload:
+        type: object
+        required:
+          - project_id
+          - access_token
+          - eleven_labs_api_key
+        properties:
+          project_id:
+            type: string
+            format: uuid
+          access_token:
+            type: string
+          eleven_labs_api_key:
+            type: string
 
   /signUp:
     post:
@@ -882,14 +1170,14 @@ paths:
             schema:
               type: object
               required:
-                - refreshToken
+                - refresh_token
               properties:
-                refreshToken:
+                refresh_token:
                   type: string
-                  example: xYz123RefreshToken456...
+                  description: The refresh token to use
       responses:
         "200":
-          description: Token refreshed successfully
+          description: Token refresh successful
           content:
             application/json:
               schema:
@@ -906,15 +1194,350 @@ paths:
                       expiresIn:
                         type: integer
                         description: Token expiration time in seconds
+
+  /editVoiceSettings:
+    post:
+      summary: Create Custom Voice with Modified Settings
+      description: |
+        Creates a custom voice by remixing an existing voice with modified settings.
+
+        **Workflow:**
+        1. Remixes the specified voice with custom description (if provided)
+        2. Retrieves the original voice data from the voices table
+        3. Creates a persistent custom voice with the remixed settings
+        4. Stores the custom voice in the `custom_voices` table with studio association
+
+        **Voice Settings Mapping:**
+        - `speaking_rate` → `speed` (0.5-2.0)
+        - `performance_intensity` → `style` (0-1)
+        - `expressiveness` → `stability` (inverted: 1 - expressiveness)
+        - `voice_fidelity` → `similarity_boost` (0-1)
+        - `enhance_voice_character` → `use_speaker_boost` (boolean)
+
+        **Requires:**
+        - JWT Bearer token in Authorization header
+        - ElevenLabs API key in `eleven-labs-api-key` header
+      operationId: editVoiceSettings
+      tags:
+        - Voices
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - voice_id
+                - studio_id
+              properties:
+                voice_id:
+                  type: string
+                  description: The ID of the original voice to remix (from ElevenLabs or voices table)
+                  example: hpp4J3VqNfWAUOO0d1Us
+                studio_id:
+                  type: string
+                  description: The studio ID to associate the custom voice with
+                  example: XE4Ex5gBhDmqxXXcxNHJ
+                voice_description:
+                  type: string
+                  description: Optional description for voice modification (will be prefixed with "Create an identical voice + ")
+                  nullable: true
+                  example: with a deeper, more authoritative tone
+                speaking_rate:
+                  type: number
+                  format: double
+                  description: Speaking rate/speed (0.5 - 2.0, default 1.0)
+                  minimum: 0.5
+                  maximum: 2.0
+                  example: 1.2
+                performance_intensity:
+                  type: number
+                  format: double
+                  description: Performance intensity/style (0 - 1)
+                  minimum: 0
+                  maximum: 1
+                  example: 0.6
+                expressiveness:
+                  type: number
+                  format: double
+                  description: Expressiveness/emotional range (0 - 1, inverted to stability)
+                  minimum: 0
+                  maximum: 1
+                  example: 0.8
+                voice_fidelity:
+                  type: number
+                  format: double
+                  description: Voice fidelity/similarity to original (0 - 1)
+                  minimum: 0
+                  maximum: 1
+                  example: 0.9
+                enhance_voice_character:
+                  type: boolean
+                  description: Enhance voice character/use speaker boost
+                  example: true
+      responses:
+        "200":
+          description: Custom voice created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          voice_id:
+                            type: string
+                            description: The ID of the created custom voice
+                            example: "abc123xyz"
+                          details:
+                            type: object
+                            description: Detailed debug and verification information
+                            properties:
+                              original_voice_id:
+                                type: string
+                                description: The original voice ID that was remixed
+                              created_voice_id:
+                                type: string
+                                description: The newly created voice ID (same as voice_id)
+                              settings_applied:
+                                type: boolean
+                                description: Whether settings were successfully applied
+                              mapped_settings:
+                                type: object
+                                description: The settings that were mapped and applied
+                                properties:
+                                  speed:
+                                    type: number
+                                  style:
+                                    type: number
+                                  stability:
+                                    type: number
+                                  similarity_boost:
+                                    type: number
+                                  use_speaker_boost:
+                                    type: boolean
+                                  description:
+                                    type: string
+                              voice_details_fetched:
+                                type: object
+                                description: Details fetched from the original voice
+                                properties:
+                                  labels:
+                                    type: object
+                                  description:
+                                    type: string
               example:
                 status: success
-                message: Token refreshed successfully
-                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                refreshToken: aBc456NewRefreshToken789...
-                expiresIn: 3600
-        "401":
-          description: Unauthorized - Invalid or expired refresh token
+                message: Voice settings processed successfully
+                data:
+                  voice_id: "abc123xyz"
+                  details:
+                    original_voice_id: "hpp4J3VqNfWAUOO0d1Us"
+                    created_voice_id: "abc123xyz"
+                    settings_applied: true
+                    mapped_settings:
+                      speed: 1.2
+                      style: 0.6
+                      stability: 0.2
+                      similarity_boost: 0.9
+                      use_speaker_boost: true
+
+        "400":
+          description: Bad request - Validation error or missing required fields
           content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missing_voice_id:
+                  value:
+                    status: error
+                    message: "Missing required field: voice_id"
+                invalid_speaking_rate:
+                  value:
+                    status: error
+                    message: "speaking_rate must be between 0.5 and 2.0"
+        "401":
+          description: Unauthorized - Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /getVoiceSettings:
+    get:
+      summary: Get Voice Settings
+      description: |
+        Fetches voice settings for a specific voice from ElevenLabs.
+        Maps the technical settings to application terminology.
+
+        **Mappings:**
+        - `speaking_rate` ← `speed`
+        - `performance_intensity` ← `style`
+        - `expressiveness` ← `stability`
+        - `voice_fidelity` ← `similarity_boost`
+        - `enhance_voice_character` ← `use_speaker_boost`
+      operationId: getVoiceSettings
+      tags:
+        - Voices
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      parameters:
+        - name: voice_id
+          in: query
+          description: Standard ElevenLabs Voice ID
+          required: true
+          schema:
+            type: string
+            example: "21m00Tcm4TlvDq8ikWAM"
+      responses:
+        "200":
+          description: Voice settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          voice_id:
+                            type: string
+                          settings:
+                            type: object
+                            description: Current voice settings
+                            properties:
+                              speaking_rate:
+                                type: number
+                                description: "speed [0.5-2.0] default 1.0"
+                              performance_intensity:
+                                type: number
+                                description: "style [0-1]"
+                              expressiveness:
+                                type: number
+                                description: "stability [0-1] (0=more emotional, 1=monotone)"
+                              voice_fidelity:
+                                type: number
+                                description: "similarity_boost [0-1] (0=less close, 1=more close)"
+                              enhance_voice_character:
+                                type: boolean
+                                description: "use_speaker_boost (true/false)"
+              example:
+                status: "success"
+                message: "Voice settings retrieved successfully"
+                data:
+                  voice_id: "21m00Tcm4TlvDq8ikWAM"
+                  settings:
+                    speaking_rate: 1.0
+                    performance_intensity: 0.0
+                    expressiveness: 0.5
+                    voice_fidelity: 0.75
+                    enhance_voice_character: true
+        "400":
+          description: Bad Request - Missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /generateAudioForParagraph:
+    post:
+      summary: Generate Audio for Paragraph
+      description: |
+        Generates audio for a block of text nodes.
+        Processes each `tts_node` individually, downloading audio to temporary files, stitches them together, and returns the combined audio file in the response.
+      operationId: generateAudioForParagraph
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+        - ElevenLabsAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - block_id
+                - project_id
+                - chapter_id
+              properties:
+                block_id:
+                  type: string
+                  description: Optional ID of the block being processed
+                project_id:
+                  type: string
+                  format: uuid
+                  description: The UUID of the project
+                chapter_id:
+                  type: string
+                  description: The ID of the chapter
+
+      responses:
+        "200":
+          description: Audio generation successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Audio generated and uploaded successfully
+                  file_url:
+                    type: string
+                    description: Public URL of the uploaded audio file
+                  file_id:
+                    type: string
+                    description: ID of the file in the gallery
+                  block_id:
+                    type: string
+                  gallery_id:
+                    type: string
+        "400":
+          description: Bad Request - Missing nodes or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "405":
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /confirmPassword:
     post:
       summary: Confirm user password
@@ -5357,6 +5980,114 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /getBlockAudioLog:
+    get:
+      summary: Get audio generation log for a block
+      description: |
+        Retrieves the latest audio generation snapshot for a specific block.
+
+        Requires authenticated user.
+      operationId: getBlockAudioLog
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: project_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+        - in: query
+          name: studio_id
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: chapter_id
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: block_id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Block snapshot retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      exists:
+                        type: boolean
+                        description: Whether the block audio log exists
+                      block_snapshot:
+                        $ref: "#/components/schemas/BlockSnapshot"
+                        nullable: true
+                    required:
+                      - exists
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /saveBlockAudioLog:
+    post:
+      summary: Save (Upsert) audio generation log for a block
+      description: |
+        Inserts or updates the audio generation snapshot for a specific block.
+        Expects Multipart Form Data.
+
+        Requires authenticated user.
+      operationId: saveBlockAudioLog
+      tags:
+        - Audiobook Management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - project_id
+                - studio_id
+                - chapter_id
+                - block_id
+                - block_snapshot
+              properties:
+                project_id:
+                  type: string
+                  format: uuid
+                studio_id:
+                  type: string
+                chapter_id:
+                  type: string
+                block_id:
+                  type: string
+                block_snapshot:
+                  type: string
+                  format: json
+                  description: JSON string of the block snapshot
+      responses:
+        "200":
+          description: Log saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
