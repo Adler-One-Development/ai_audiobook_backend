@@ -75,7 +75,7 @@ async function processProjectAudioGeneration(ws, projectId, accessToken, elevenL
 
     try {
         // 1. Trigger Conversion
-        ws.send(JSON.stringify({ status: 'converting', message: 'Starting project conversion...' }));
+        ws.send(JSON.stringify({ status: 'processing', message: 'Starting project conversion...' }));
         
         const convertUrl = `${SUPABASE_URL}/functions/v1/convertProject`;
         const startTimeUnix = Math.floor(Date.now() / 1000); // Current time in Unix timestamp
@@ -98,7 +98,7 @@ async function processProjectAudioGeneration(ws, projectId, accessToken, elevenL
         }
 
         ws.send(JSON.stringify({ 
-            status: 'waiting_for_snapshot', 
+            status: 'processing', 
             message: 'Conversion initiated. Waiting for snapshot to be created...' 
         }));
 
@@ -147,7 +147,7 @@ async function processProjectAudioGeneration(ws, projectId, accessToken, elevenL
         }
 
         ws.send(JSON.stringify({ 
-            status: 'snapshot_created', 
+            status: 'processing', 
             message: 'Project converted and snapshot verified', 
             snapshot_id: projectSnapshotId 
         }));

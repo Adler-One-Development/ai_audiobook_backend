@@ -157,10 +157,10 @@ async function processParagraphAudioGeneration(ws, projectId, chapterId, blockId
     const _session = sessionState.get(ws);
 
     try {
-        ws.send(JSON.stringify({ status: 'validating_request', message: 'Validating request...' }));
+        ws.send(JSON.stringify({ status: 'processing', message: 'Validating request...' }));
         
         // 1. Fetch current block content from DB (to get text + voice_id)
-        ws.send(JSON.stringify({ status: 'fetching_content', message: 'Fetching block content...' }));
+        ws.send(JSON.stringify({ status: 'processing', message: 'Fetching block content...' }));
         
         const currentBlockContent = await fetchBlockContent(projectId, chapterId, blockId, accessToken, SUPABASE_URL);
         
@@ -179,7 +179,7 @@ async function processParagraphAudioGeneration(ws, projectId, chapterId, blockId
         delete cleanBlockSnapshot.studioId;
 
         // 2. Retrieve last snapshot from logs
-        ws.send(JSON.stringify({ status: 'checking_cache', message: 'Checking audio logs...' }));
+        ws.send(JSON.stringify({ status: 'processing', message: 'Checking audio logs...' }));
         const lastSnapshot = await fetchBlockAudioLog(projectId, studioId, chapterId, blockId, accessToken, SUPABASE_URL);
 
         // 3. Check if file exists in storage

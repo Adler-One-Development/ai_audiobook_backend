@@ -677,7 +677,7 @@ paths:
 
   /previewAudioForParagraph:
     get:
-      summary: Preview Audio for Paragraph (WebSocket)
+      summary: Generate/Preview Audio for Paragraph (WebSocket)
       description: |
         **WebSocket Endpoint**
 
@@ -701,7 +701,7 @@ paths:
             "eleven_labs_api_key": "..."
         }
         ```
-      operationId: previewAudioForParagraph
+      operationId: generateAudioForParagraph
       tags:
         - WebSockets
       servers:
@@ -735,6 +735,106 @@ paths:
           eleven_labs_api_key:
             type: string
             description: ElevenLabs API key.
+
+  /previewAudioForChapter:
+    get:
+      summary: Generate Audio for Chapter (WebSocket)
+      description: |
+        **WebSocket Endpoint**
+
+        Connect to this endpoint via WebSocket (`wss://`) to generate audio for an entire chapter.
+        It handles conversion, snapshot polling, and audio generation with caching.
+
+        **Flow:**
+        1. Connect to WebSocket.
+        2. Send JSON payload with chapter details.
+        3. Server checks cache (returns existing if unchanged).
+        4. If new: Server triggers `convertChapter`.
+        5. Server polls for new `ChapterSnapshot`.
+        6. Server triggers `generateAudioForChapter`.
+        7. Returns final audio file URL.
+
+        ### Request Payload
+        ```json
+        {
+            "project_id": "...",
+            "chapter_id": "...",
+            "access_token": "...",
+            "eleven_labs_api_key": "..."
+        }
+        ```
+      operationId: generateAudioForChapter
+      tags:
+        - WebSockets
+      servers:
+        - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/previewAudioForChapter
+      responses:
+        "101":
+          description: Switching Protocols
+      x-websocket-payload:
+        type: object
+        required:
+          - project_id
+          - chapter_id
+          - access_token
+          - eleven_labs_api_key
+        properties:
+          project_id:
+            type: string
+            format: uuid
+          chapter_id:
+            type: string
+          access_token:
+            type: string
+          eleven_labs_api_key:
+            type: string
+
+  /generateCompleteAudio:
+    get:
+      summary: Generate Complete Audio for Project (WebSocket)
+      description: |
+        **WebSocket Endpoint**
+
+        Connect to this endpoint via WebSocket (`wss://`) to generate audio for the entire project.
+
+        **Flow:**
+        1. Connect to WebSocket.
+        2. Send JSON payload with project details.
+        3. Server triggers `convertProject`.
+        4. Server polls for new `ProjectSnapshot`.
+        5. Server triggers `generateAudioForProject`.
+        6. Returns final audio file URL (converted to MPEG if configured).
+
+        ### Request Payload
+        ```json
+        {
+            "project_id": "...",
+            "access_token": "...",
+            "eleven_labs_api_key": "..."
+        }
+        ```
+      operationId: generateCompleteAudio
+      tags:
+        - WebSockets
+      servers:
+        - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/generateCompleteAudio
+      responses:
+        "101":
+          description: Switching Protocols
+      x-websocket-payload:
+        type: object
+        required:
+          - project_id
+          - access_token
+          - eleven_labs_api_key
+        properties:
+          project_id:
+            type: string
+            format: uuid
+          access_token:
+            type: string
+          eleven_labs_api_key:
+            type: string
 
   /signUp:
     post:

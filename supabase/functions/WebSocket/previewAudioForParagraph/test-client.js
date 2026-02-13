@@ -2,16 +2,48 @@ import WebSocket from 'ws';
 
 // Configuration (Update these values before running)
 const HOST = 'ws://localhost:8084';
-const PROJECT_ID = '';
-const CHAPTER_ID = '';
-const BLOCK_ID = '';
+const PROJECT_ID = '610e2401-a2f7-47e1-b96a-ac6dc976bd64';
+const CHAPTER_ID = 'SW33iI9Whtofpt78qu8h';
+const BLOCK_ID = '28LYWXv8PaCicsye4FwL';
 
-// Retrieve valid tokens from environment or input manually
-// Note: Tokens expire, so you may need to refresh them.
-const ACCESS_TOKEN='';
-const ELEVEN_LABS_API_KEY = '';
+// Login Credentials
+const LOGIN_URL = 'https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/login';
+const EMAIL = 'nlazarus@texasgrowthfactory.com';
+const PASSWORD = 'abcDEF@1234';
+
+const ELEVEN_LABS_API_KEY = 'sk_d545137c23e3098d622e593988bc4e2691554f05a701b0e8';
+
+async function getAccessToken() {
+    console.log(`Logging in as ${EMAIL}...`);
+    try {
+        const response = await fetch(LOGIN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: EMAIL, password: PASSWORD })
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Login failed: ${response.status} ${response.statusText} - ${text}`);
+        }
+
+        const data = await response.json();
+        // Check for token in data.token (as verified in login function)
+        if (data.token) {
+             console.log("Login successful. Token received.");
+             return data.token;
+        } else {
+             throw new Error("Login successful but no token found in response.");
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        process.exit(1);
+    }
+}
 
 async function runTest() {
+    const accessToken = await getAccessToken();
+
     console.log(`Connecting to ${HOST}...`);
     const ws = new WebSocket(HOST);
 
@@ -22,7 +54,7 @@ async function runTest() {
             project_id: PROJECT_ID,
             chapter_id: CHAPTER_ID,
             block_id: BLOCK_ID,
-            access_token: ACCESS_TOKEN,
+            access_token: accessToken,
             eleven_labs_api_key: ELEVEN_LABS_API_KEY
         };
 

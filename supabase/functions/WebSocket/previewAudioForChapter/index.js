@@ -221,7 +221,7 @@ async function processChapterAudioGeneration(ws, projectId, chapterId, accessTok
 
     try {
         // 1. Fetch current chapter content
-        ws.send(JSON.stringify({ status: 'fetching_content', message: 'Fetching chapter content...' }));
+        ws.send(JSON.stringify({ status: 'processing', message: 'Fetching chapter content...' }));
         
         const currentChapterContent = await fetchChapterContent(projectId, chapterId, accessToken, SUPABASE_URL);
         
@@ -239,7 +239,7 @@ async function processChapterAudioGeneration(ws, projectId, chapterId, accessTok
         delete cleanChapterSnapshot.studioId;
 
         // 2. Retrieve last snapshot from logs
-        ws.send(JSON.stringify({ status: 'checking_cache', message: 'Checking audio logs...' }));
+        ws.send(JSON.stringify({ status: 'processing', message: 'Checking audio logs...' }));
         const lastSnapshot = await fetchChapterAudioLog(projectId, studioId, chapterId, accessToken, SUPABASE_URL);
 
         // 3. Check if file exists in storage
@@ -268,7 +268,7 @@ async function processChapterAudioGeneration(ws, projectId, chapterId, accessTok
         }
 
         // 5. Convert Chapter (if generating new)
-        ws.send(JSON.stringify({ status: 'converting', message: 'Starting chapter conversion...' }));
+        ws.send(JSON.stringify({ status: 'processing', message: 'Starting chapter conversion...' }));
         
         const convertUrl = `${SUPABASE_URL}/functions/v1/convertChapter`;
         const startTimeUnix = Math.floor(Date.now() / 1000); // Current time in Unix timestamp
@@ -292,7 +292,7 @@ async function processChapterAudioGeneration(ws, projectId, chapterId, accessTok
         }
 
         ws.send(JSON.stringify({ 
-            status: 'waiting_for_snapshot', 
+            status: 'processing', 
             message: 'Conversion initiated. Waiting for snapshot to be created...' 
         }));
 
@@ -341,7 +341,7 @@ async function processChapterAudioGeneration(ws, projectId, chapterId, accessTok
         }
 
         ws.send(JSON.stringify({ 
-            status: 'snapshot_created', 
+            status: 'processing', 
             message: 'Chapter converted and snapshot verified', 
             snapshot_id: chapterSnapshotId 
         }));

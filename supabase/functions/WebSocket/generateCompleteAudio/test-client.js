@@ -3,42 +3,92 @@ import WebSocket from 'ws';
 // Configuration (Update these values before running)
 const HOST = 'ws://localhost:8085';
 const PROJECT_ID = ''; // Enter your project ID
-const ACCESS_TOKEN = ''; // Enter your Supabase Access Token
+
+// Login Credentials
+const LOGIN_URL = 'https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/login';
+const EMAIL = 'nlazarus@texasgrowthfactory.com';
+const PASSWORD = 'abcDEF@1234';
+
 const ELEVEN_LABS_API_KEY = ''; // Enter your ElevenLabs API Key
 
-if (!PROJECT_ID || !ACCESS_TOKEN || !ELEVEN_LABS_API_KEY) {
+if (!PROJECT_ID || !ELEVEN_LABS_API_KEY) {
     console.error('Please update the configuration constants in test-client.js before running.');
-    // process.exit(1); // Commented out to allow running and failing gracefully if empty
+    // process.exit(1);
 }
 
-const ws = new WebSocket(HOST);
+async function getAccessToken() {
+    console.log(`Logging in as ${EMAIL}...`);
+    try {
+        const response = await fetch(LOGIN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: EMAIL, password: PASSWORD })
+        });
 
-ws.on('open', function open() {
-    console.log('Connected to WebSocket server');
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Login failed: ${response.status} ${response.statusText} - ${text}`);
+        }
 
-    const payload = {
-        project_id: PROJECT_ID,
-        access_token: ACCESS_TOKEN,
-        eleven_labs_api_key: ELEVEN_LABS_API_KEY
-    };
-
-    console.log('Sending payload:', payload);
-    ws.send(JSON.stringify(payload));
-});
-
-ws.on('message', function message(data) {
-    const response = JSON.parse(data.toString());
-    console.log('Received:', JSON.stringify(response, null, 2));
-
-    if (response.status === 'complete' || response.status === 'error') {
-        ws.close();
+        const data = await response.json();
+        // Check for token in data.token (as verified in login function)
+        if (data.token) {
+             console.log("Login successful. Token received.");
+             return data.token;
+        } else {
+             throw new Error("Login successful but no token found in response.");
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        process.exit(1);
     }
-});
+}
 
-ws.on('close', () => {
-    console.log('Disconnected');
-});
+async function runTest() {
+    const accessToken = await getAccessToken();
 
-ws.on('error', (error) => {
-    console.error('WebSocket error:', error);
-});
+    console.log(`Connecting to ${HOST}...`);
+    const ws = new WebSocket(HOST);
+
+    ws.on('open', () => {
+        console.log('Connected!');
+        
+        const payload = {
+            project_id: PROJECT_ID,
+            access_token: accessToken,
+            eleven_labs_api_key: ELEVEN_LABS_API_KEY
+        };
+
+        console.log('Sending payload:', JSON.stringify(payload, null, 2));
+        ws.send(JSON.stringify(payload));
+    });
+
+    ws.on('message', (data) => {
+        try {
+            const response = JSON.parse(data.toString());
+            console.log(`Received: [${response.status}] ${response.message}`);
+            
+            if (response.status === 'complete') {
+                console.log('Data:', JSON.stringify(response.data, null, 2));
+                ws.close();
+            } else if (response.status === 'error') {
+                console.error('Error:', response.message);
+                ws.close();
+            }
+        } catch (e) {
+            console.error('Failed to parse message:', data.toString());
+        }
+    });
+
+    ws.on('close', () => {
+        console.log('Disconnected');
+        process.exit(0);
+    });
+
+    ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        process.exit(1);
+    });
+}
+
+runTest();
