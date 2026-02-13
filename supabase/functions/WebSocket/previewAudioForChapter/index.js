@@ -1,4 +1,3 @@
-import { writeFile } from 'fs/promises';
 import { WebSocketServer } from 'ws';
 import process from "node:process";
 import http from 'http';
