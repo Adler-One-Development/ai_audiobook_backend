@@ -1,7 +1,9 @@
+import { writeFile } from 'fs/promises';
 import { WebSocketServer } from 'ws';
+import process from "node:process";
 import http from 'http';
-
-const PORT = process.env.PORT || 8083;
+ 
+// ...
 
 // Simple deep equal helper
 function deepComparison(obj1, obj2) {
@@ -168,6 +170,8 @@ async function fetchChapterContent(projectId, chapterId, accessToken, supabaseUr
 // WEBSOCKET SERVER
 // =============================================================================
 const wss = new WebSocketServer({ server });
+
+const PORT = process.env.PORT || 8083;
 
 console.log(`WebSocket server starting on port ${PORT}`);
 
