@@ -701,12 +701,12 @@ paths:
             "eleven_labs_api_key": "..."
         }
         ```
-      operationId: generateAudioForParagraph
+      operationId: previewAudioForParagraph
       tags:
         - WebSockets
       servers:
-        - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/previewAudioForParagraph
-          description: Supabase Edge Function
+        - url: https://preview-audio-for-paragraph-581621465354.us-south1.run.app
+          description: Cloud Run WebSocket Service
       responses:
         "101":
           description: Switching Protocols - WebSocket Connection Established
@@ -735,6 +735,9 @@ paths:
           eleven_labs_api_key:
             type: string
             description: ElevenLabs API key.
+          force_regenerate:
+            type: boolean
+            description: Force regeneration of audio even if cached.
 
   /previewAudioForChapter:
     get:
@@ -763,11 +766,11 @@ paths:
             "eleven_labs_api_key": "..."
         }
         ```
-      operationId: generateAudioForChapter
+      operationId: previewAudioForChapter
       tags:
         - WebSockets
       servers:
-        - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/previewAudioForChapter
+        - url: https://preview-audio-for-chapter-581621465354.us-south1.run.app
       responses:
         "101":
           description: Switching Protocols
@@ -817,7 +820,7 @@ paths:
       tags:
         - WebSockets
       servers:
-        - url: https://hskaqvjruqzmgrwxmxxd.supabase.co/functions/v1/generateCompleteAudio
+        - url: https://generate-complete-audio-581621465354.us-south1.run.app
       responses:
         "101":
           description: Switching Protocols
