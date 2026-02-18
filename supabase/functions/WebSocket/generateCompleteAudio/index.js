@@ -1,6 +1,26 @@
 import { WebSocketServer } from 'ws';
 import process from "node:process";
 import http from 'http';
+import { createClient } from '@supabase/supabase-js';
+import { Readable } from 'node:stream';
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hskaqvjruqzmgrwxmxxd.supabase.co';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhza2FxdmpydXF6bWdyd3hteHhkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIzNzk0NSwiZXhwIjoyMDgzODEzOTQ1fQ.5phCCOdf2PRpRE6kI5yrkjHfTtC4Yp2Ajg27s7shLCs';
+
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('WARNING: SUPABASE_SERVICE_ROLE_KEY is not set. Admin operations will fail.');
+}
+
+const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+const FileType = Object.freeze({
+    TXT: 'txt',
+    MP3: 'mp3'
+});
+
+const CURRENT_FILE_TYPE = FileType.MP3;
+
+
 
 const PORT = process.env.PORT || 8085;
 
@@ -96,6 +116,7 @@ async function processProjectAudioGeneration(ws, projectId, accessToken, elevenL
             const errorText = await convertResponse.text();
             throw new Error(`Convert failed: ${convertResponse.status} - ${errorText}`);
         }
+        ws.send(JSON.stringify({ status: 'processing', message: convertResponse.json() }));
 
         ws.send(JSON.stringify({ 
             status: 'processing', 
@@ -153,29 +174,9 @@ async function processProjectAudioGeneration(ws, projectId, accessToken, elevenL
         }));
 
         // 3. Generate Audio
-        ws.send(JSON.stringify({ status: 'generating_audio', message: 'Generating audio for project...' }));
+        ws.send(JSON.stringify({ status: 'generating_audio', message: 'Generating audio for project (Internal Process)...' }));
 
-        const generateUrl = `${SUPABASE_URL}/functions/v1/generateAudioForProject`;
-        
-        const generateFormData = new FormData();
-        generateFormData.append('project_id', projectId);
-        generateFormData.append('project_snapshot_id', projectSnapshotId);
-
-        const generateResponse = await fetch(generateUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'eleven-labs-api-key': elevenLabsApiKey
-            },
-            body: generateFormData
-        });
-
-        if (!generateResponse.ok) {
-            const errorText = await generateResponse.text();
-            throw new Error(`Audio generation failed: ${generateResponse.status} - ${errorText}`);
-        }
-
-        const generateData = await generateResponse.json();
+        const generateData = await generateAudioInternal(ws, projectId, projectSnapshotId, accessToken, elevenLabsApiKey);
 
         // 4. Complete
         ws.send(JSON.stringify({ 
@@ -188,10 +189,179 @@ async function processProjectAudioGeneration(ws, projectId, accessToken, elevenL
         console.error('Process error:', error);
         ws.send(JSON.stringify({ 
             status: 'error', 
-            message: `Process failed: ${error.message}` 
+            message: `Process failed: ${error.message || error}` 
         }));
     }
 }
+
+async function generateAudioInternal(ws, projectId, projectSnapshotId, accessToken, elevenLabsApiKey) {
+    // 1. Get project and verify access + get studio_id and gallery_id
+    // We use the accessToken to verify the user identity first
+    const { data: { user }, error: authError } = await adminClient.auth.getUser(accessToken);
+    if (authError || !user) {
+        throw new Error("Unauthorized: Invalid access token");
+    }
+
+    const { data: project, error: projectError } = await adminClient
+        .from("projects")
+        .select("studio_id, gallery_id")
+        .eq("id", projectId)
+        .or(`owner_id.eq.${user.id},access_levels.cs.{${user.id}}`)
+        .single();
+
+    if (projectError || !project) {
+        throw new Error("Project not found or access denied");
+    }
+
+    if (!project.studio_id) {
+        throw new Error("Project does not have a studio associated");
+    }
+
+    const studioId = project.studio_id;
+
+    // 2. Fetch studio data to calculate cost
+    const { data: studio, error: studioError } = await adminClient
+        .from("studio")
+        .select("chapters")
+        .eq("id", studioId)
+        .single();
+
+    if (studioError || !studio) {
+        throw new Error("Failed to fetch studio details");
+    }
+
+    // Calculate characters across ALL chapters
+    let totalProjectCharacters = 0;
+    const chapters = studio.chapters || [];
+
+    chapters.forEach((chapter) => {
+        if (chapter.content_json && Array.isArray(chapter.content_json.blocks)) {
+            chapter.content_json.blocks.forEach((block) => {
+                if (Array.isArray(block.nodes)) {
+                    block.nodes.forEach((node) => {
+                        if (node.text) {
+                            totalProjectCharacters += node.text.length;
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    const creditCost = Math.ceil(totalProjectCharacters / 1000);
+    console.log(`Internal Audio Generation - Project Chars: ${totalProjectCharacters}, Cost: ${creditCost} credits`);
+    ws.send(JSON.stringify({ status: 'processing', message: `Validated project: ${totalProjectCharacters} characters, cost: ${creditCost} credits` }));
+
+    // Get available credits
+    const { data: creditsData, error: creditsError } = await adminClient
+        .from("credits_allocation")
+        .select("credits_available, credits_used, total_credits_used")
+        .eq("user_id", user.id)
+        .single();
+
+    if (creditsError || !creditsData) {
+        throw new Error("Failed to fetch credit balance");
+    }
+
+    if (creditsData.credits_available < creditCost) {
+        throw new Error(`Insufficient credits. Required: ${creditCost}, Available: ${creditsData.credits_available}`);
+    }
+
+    // 3. Call ElevenLabs Stream API
+    console.log(`Streaming project snapshot: ${projectSnapshotId}`);
+    ws.send(JSON.stringify({ status: 'processing', message: 'Streaming audio from ElevenLabs (this may take several minutes)...' }));
+
+    const streamResponse = await fetch(
+        `https://api.elevenlabs.io/v1/studio/projects/${studioId}/snapshots/${projectSnapshotId}/stream`,
+        {
+            method: "POST",
+            headers: {
+                "xi-api-key": elevenLabsApiKey,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ "convert_to_mpeg": true }),
+        }
+    );
+
+    if (!streamResponse.ok) {
+        const errorText = await streamResponse.text();
+        console.error("ElevenLabs Stream Error:", errorText);
+        throw new Error(`ElevenLabs Stream Error: ${streamResponse.status} - ${errorText}`);
+    }
+
+    let fileData;
+    if (CURRENT_FILE_TYPE === FileType.MP3) {
+        fileData = Readable.fromWeb(streamResponse.body);
+        console.log(`Processing as MP3 stream`);
+        ws.send(JSON.stringify({ status: 'processing', message: 'Processing audio stream. Uploading to storage...' }));
+    } else {
+        fileData = await streamResponse.blob();
+        console.log(`Received audio blob, size: ${fileData.size} bytes`);
+        ws.send(JSON.stringify({ status: 'processing', message: `Received audio blob (${(fileData.size / 1024 / 1024).toFixed(2)} MB). Uploading to storage...` }));
+    }
+
+    // 4. Upload to Storage
+    const { fileId, fileUrl } = await uploadToSupabaseStorage(adminClient, studioId, fileData, CURRENT_FILE_TYPE);
+
+
+
+    // 5. Deduct Credits
+    const { error: deductionError } = await adminClient.from("credits_allocation")
+        .update({
+            credits_available: creditsData.credits_available - creditCost,
+            credits_used: (creditsData.credits_used || 0) + creditCost,
+            total_credits_used: (creditsData.total_credits_used || 0) + creditCost
+        })
+        .eq("user_id", user.id);
+
+    if (deductionError) {
+        console.error("CRITICAL: Failed to deduct credits after generation!", deductionError);
+        // We don't throw here because audio IS generated, but we log the critical error
+    } else {
+        console.log("Credits deducted successfully.");
+    }
+
+    return {
+        status: "success",
+        message: "Audio generated successfully",
+        project_id: projectId,
+        credits_used: creditCost,
+        file: {
+            id: fileId,
+            url: fileUrl
+        }
+    };
+}
+
+async function uploadToSupabaseStorage(adminClient, studioId, fileBlob, fileType) {
+    const extension = fileType === FileType.TXT ? 'txt' : 'mp3';
+    const contentType = fileType === FileType.TXT ? 'text/plain' : 'audio/mpeg';
+    const path = `${studioId}/complete_audiobook/${studioId}.${extension}`;
+
+    const { data: _uploadData, error: uploadError } = await adminClient.storage
+        .from("audio_files")
+        .upload(path, fileBlob, {
+            contentType,
+            upsert: true,
+            duplex: fileType === FileType.MP3 ? 'half' : undefined
+        });
+
+
+    if (uploadError) {
+        console.error(`Storage Upload FAILED:`, uploadError);
+        throw new Error(`Failed to upload file: ${uploadError.message}`);
+    }
+
+    const { data: publicUrlData } = adminClient.storage
+        .from("audio_files")
+        .getPublicUrl(path);
+
+    return {
+        fileId: crypto.randomUUID(),
+        fileUrl: publicUrlData.publicUrl
+    };
+}
+
 
 server.listen(PORT, () => {
     console.log(`Generate Complete Audio WebSocket Server running on port ${PORT}`);

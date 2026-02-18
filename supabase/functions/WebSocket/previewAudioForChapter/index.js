@@ -204,6 +204,8 @@ wss.on('connection', (ws) => {
         } catch (error) {
             console.error('Error processing message:', error);
             ws.send(JSON.stringify({ status: 'error', message: `Server error: ${error.message}` }));
+        } finally {
+            ws.isProcessing = false;
         }
     });
 
@@ -217,6 +219,17 @@ wss.on('connection', (ws) => {
 });
 
 async function processChapterAudioGeneration(ws, projectId, chapterId, accessToken, elevenLabsApiKey) {
+    // Prevent concurrent processing
+    if (ws.isProcessing) {
+        console.log('Ignoring concurrent request from client');
+        ws.send(JSON.stringify({ 
+            status: 'warning', 
+            message: 'A request is already being processed. Please wait.' 
+        }));
+        return;
+    }
+    ws.isProcessing = true;
+
     const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hskaqvjruqzmgrwxmxxd.supabase.co';
 
     try {
@@ -332,7 +345,15 @@ async function processChapterAudioGeneration(ws, projectId, chapterId, accessTok
                 console.warn('Polling error:', err);
             }
 
-            console.log(`Waiting for snapshot... attempt ${i + 1}/${maxRetries}`);
+            const attemptMsg = `Waiting for snapshot... attempt ${i + 1}/${maxRetries}`;
+            console.log(attemptMsg);
+            
+            // Send polling update to client
+            ws.send(JSON.stringify({ 
+                status: 'processing', 
+                message: attemptMsg 
+            }));
+
             await new Promise(resolve => setTimeout(resolve, pollInterval));
         }
 
